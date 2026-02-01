@@ -85,9 +85,6 @@ parameters:
   Token:
     type: string
     defaultValue: PAT-Token
-  showSecrets:
-    type: bool
-    defaultValue: true
 resources:
 - name: Working with classic DSC resources for ADO v4
   type: Microsoft.Windows/WindowsPowerShell
@@ -119,11 +116,6 @@ resources:
         AccessLevel: Basic
         Ensure: Present
         pat: "[parameters('Token')]"
-- name: SecureString
-  type: Microsoft.DSC.Debug/Echo
-  properties:
-    output: "[parameters('Token')]"
-    showSecrets: "[parameters('showSecrets')]"
 
 
 ```
