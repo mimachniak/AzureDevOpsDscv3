@@ -2,10 +2,10 @@
 
 This is a refactored version of the **AzureDevOpsDsc** project, originally created by the [DSC Community](https://github.com/dsccommunity/AzureDevOpsDsc). This refactored poroject that support DSC v3.
 
-![PowerShell Gallery](https://img.shields.io/powershellgallery/v/AzureResourcesNameGenerator.svg)
+![PowerShell Gallery](https://img.shields.io/powershellgallery/v/AzureDevOpsDscv3.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-PowerShell%207%2B-lightgrey)
-![Downloads](https://img.shields.io/powershellgallery/dt/AzureResourcesNameGenerator)
+![Downloads](https://img.shields.io/powershellgallery/dt/AzureDevOpsDscv3)
 
 
 ---
