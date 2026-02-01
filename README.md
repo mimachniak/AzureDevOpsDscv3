@@ -13,11 +13,15 @@ This is a refactored version of the **AzureDevOpsDsc** project, originally creat
 ## 📘 Table of Contents
 
 - [About This Project](#about-this-project)
+- [Parameters documentation](./docs/AzureDevOpsDscv3-parameters.md)
 - [Original Project](#original-project)
 - [Credits](#credits)
 - [License](#license)
 - [Getting Started](#getting-started)
 - [Prerequisites](#prerequisites)
+- [Setup and Example of Configuration](#setup-and-example-of-configuration)
+  - [DSC V3 Configuration File](#dsc-v3-configuration-file)
+  - [DSC Run and Setup Azure DevOps](#dsc-run-and-setup-azure-devops)
 - [Change Log](#change-log)
 
 ---
@@ -93,7 +97,7 @@ resources:
       type: AzureDevOpsDscv3/ProjectResource
       properties:
         Organization: ExampleOrganization
-        ProjectName: TestDSCv16
+        ProjectName: TestDSC
         Description: "Project created via DSC v3 with secure parameters"
         pat: "[parameters('Token')]"
         SourceControlType: Git
@@ -127,6 +131,8 @@ resources:
 ### DSC run and setup Azure DevOps
 
 ```bash
+
+dsc --version
 
 dsc -l debug config set --file .\dsc_resources_ado.dsc.yaml    
 
