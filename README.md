@@ -11,21 +11,14 @@ This is a refactored version of the **AzureDevOpsDsc** project, originally creat
 ---
 
 ## 📘 Table of Contents
-- [Overview](#overview)
-  - [Default loaded data](#Default-loaded-data)
-- [Purpose](#purpose)
-- [Key Features](#key-features)
-- [Install module on your desktop](#install-module-on-your-desktop)
-- [Get resources data](#get-resources-data)
-   - [Ouput for function example](#Ouput-for-function-example )
-- [Generate name for Azure resources](#generate-name-for-Azure-resources)
-   - [Naming Schema file guide and example](#Naming-Schema-file-guide-and-example)
-   - [Example of Json file with naming schema](#Example-of-Json-file-with-naming-schema)
-   - [Example of schema for resources base on json file ](#Example-of-schema-for-resources-base-on-json-file)
-   - [Output resources names ](#Output-resources-names)
-   - [Output resources in bicep files names:](#Output-resources-in-bicep-files-names)
-- [Limitations](#limitations)
-- [Features](#features)
+
+- [About This Project](#about-this-project)
+- [Original Project](#original-project)
+- [Credits](#credits)
+- [License](#license)
+- [Getting Started](#getting-started)
+- [Prerequisites](#prerequisites)
+- [Change Log](#change-log)
 
 ---
 
@@ -79,4 +72,4 @@ DSCv3: [DSCv3 Get-Started](https://github.com/PowerShell/DSC/blob/main/docs/get-
 
 ## Change log
 
-A full list of changes in each version can be found in the [change log](https://github.com/dsccommunity/AzureDevOpsDsc/blob/main/CHANGELOG.md).
+A full list of changes in each version can be found in the [change log](https://github.com/mimachniak/AzureDevOpsDscv3/blob/main/CHANGELOG.md).

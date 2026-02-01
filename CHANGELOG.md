@@ -1,9 +1,9 @@
 <!-- markdownlint-disable MD024 -->
 # Changelog
 
-## [1.0.0] - 2026-12-1
+## [1.0.0] - 2026-02-01
 
 ### Added
 
-- Initial release. Add Function doe manage: Users, Projects, Groups
+- Initial release. Add DSC class for:  Users, Projects, Groups
 
