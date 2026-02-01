@@ -26,7 +26,7 @@ Manages Azure DevOps projects for an organization.
 | `Organization` | Azure DevOps organization name | None | ✅ Yes |
 | `Ensure` | Desired state: `Present` or `Absent` | None | ✅ Yes |
 | `pat` | Personal access token used for authentication | None | ✅ Yes |
-| `templateTypeId` | Process template type ID used when creating a project | `adcc42ab-9882-485e-a3ed-7678f01f66bc` | ❌ No |
+| `templateTypeId` | Process template type ID used when creating a project Basic: b8a3a935-7e91-48b8-a94c-606d37c3e9f2, Scrum: 6b724908-ef14-45cf-84f8-768b5384da45           Agile: adcc42ab-9882-485e-a3ed-7678f01f66bc, CMMI: 27450541-8e31-4150-9947-dc59f998fc01  | `adcc42ab-9882-485e-a3ed-7678f01f66bc` | ❌ No |
 | `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
 
 ---
