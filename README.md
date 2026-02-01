@@ -1,0 +1,82 @@
+# AzureDevOpsDsc v3
+
+This is a refactored version of the **AzureDevOpsDsc** project, originally created by the [DSC Community](https://github.com/dsccommunity/AzureDevOpsDsc). This refactored poroject that support DSC v3.
+
+![PowerShell Gallery](https://img.shields.io/powershellgallery/v/AzureResourcesNameGenerator.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Platform](https://img.shields.io/badge/platform-PowerShell%207%2B-lightgrey)
+![Downloads](https://img.shields.io/powershellgallery/dt/AzureResourcesNameGenerator)
+
+
+---
+
+## 📘 Table of Contents
+- [Overview](#overview)
+  - [Default loaded data](#Default-loaded-data)
+- [Purpose](#purpose)
+- [Key Features](#key-features)
+- [Install module on your desktop](#install-module-on-your-desktop)
+- [Get resources data](#get-resources-data)
+   - [Ouput for function example](#Ouput-for-function-example )
+- [Generate name for Azure resources](#generate-name-for-Azure-resources)
+   - [Naming Schema file guide and example](#Naming-Schema-file-guide-and-example)
+   - [Example of Json file with naming schema](#Example-of-Json-file-with-naming-schema)
+   - [Example of schema for resources base on json file ](#Example-of-schema-for-resources-base-on-json-file)
+   - [Output resources names ](#Output-resources-names)
+   - [Output resources in bicep files names:](#Output-resources-in-bicep-files-names)
+- [Limitations](#limitations)
+- [Features](#features)
+
+---
+
+## About This Project
+
+This repository represents a modernized and refactored implementation of the AzureDevOpsDsc module, building upon the foundation established by the DSC Community. The v3 version aims to improve maintainability, performance, and compatibility with current Azure DevOps and PowerShell DSC standards.
+
+## Original Project
+
+The original AzureDevOpsDsc project was developed and maintained by the DSC Community and can be found at:
+- **Repository**: [https://github.com/dsccommunity/AzureDevOpsDsc](https://github.com/dsccommunity/AzureDevOpsDsc)
+
+## Credits
+
+Full credit for the original concept and implementation goes to the DSC Community and all contributors to the original AzureDevOpsDsc project.
+
+## License
+
+Please refer to the [LICENSE](LICENSE) file for licensing information.
+
+## Getting started
+
+To get started either:
+
+- Install from the PowerShell Gallery using PowerShellGet by running the
+  following command:
+
+```powershell
+Install-Module -Name AzureDevOpsDscv3 -Repository PSGallery
+```
+
+- Download AzureDevOpsDsc from the [PowerShell Gallery](https://www.powershellgallery.com/packages/AzureDevOpsDscv3)
+  and then unzip it to one of your PowerShell modules folders (such as
+  `$env:ProgramFiles\WindowsPowerShell\Modules`).
+
+To confirm installation, run the below command and ensure you see the AzureDevOpsDsc
+DSC resources available:
+
+```powershell
+Get-DscResource -Module AzureDevOpsDscv3
+```
+
+## Prerequisites
+
+The minimum Windows Management Framework (PowerShell) version required is 5.0
+or higher, which ships with Windows 10 or Windows Server 2016,
+but can also be installed on Windows 7 SP1, Windows 8.1, Windows Server 2012,
+and Windows Server 2012 R2.  
+
+DSCv3: [DSCv3 Get-Started](https://github.com/PowerShell/DSC/blob/main/docs/get-started/index.md)
+
+## Change log
+
+A full list of changes in each version can be found in the [change log](https://github.com/dsccommunity/AzureDevOpsDsc/blob/main/CHANGELOG.md).
