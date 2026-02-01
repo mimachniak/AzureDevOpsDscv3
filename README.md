@@ -70,6 +70,68 @@ and Windows Server 2012 R2.
 
 DSCv3: [DSCv3 Get-Started](https://github.com/PowerShell/DSC/blob/main/docs/get-started/index.md)
 
+## Setup and example of configuration
+
+### DSC V3 configuration file
+
+```yaml
+
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+parameters:
+  Token:
+    type: string
+    defaultValue: PAT-Token
+  showSecrets:
+    type: bool
+    defaultValue: true
+resources:
+- name: Working with classic DSC resources for ADO v4
+  type: Microsoft.Windows/WindowsPowerShell
+  properties:
+    resources:
+    - name: Create ADO project - DSC
+      type: AzureDevOpsDscv3/ProjectResource
+      properties:
+        Organization: ExampleOrganization
+        ProjectName: TestDSCv16
+        Description: "Project created via DSC v3 with secure parameters"
+        pat: "[parameters('Token')]"
+        SourceControlType: Git
+        Ensure: Present
+    - name: AddUser
+      type: AzureDevOpsDscv3/OrganizationUserResource
+      properties:
+        UserPrincipalName: UserPrincipalName
+        Organization: ExampleOrganization
+        AccessLevel: Basic  # or Stakeholder, BasicPlusTestPlans
+        Ensure: Present
+        pat: "[parameters('Token')]"
+    - name: AddGroup
+      type: AzureDevOpsDscv3/OrganizationGroupResource
+      properties:
+        GroupOriginId: EntraID-GroupObjectID   # group descriptor
+        GroupDisplayName: EntraID-GroupDisplayName
+        Organization: ExampleOrganization
+        AccessLevel: Basic
+        Ensure: Present
+        pat: "[parameters('Token')]"
+- name: SecureString
+  type: Microsoft.DSC.Debug/Echo
+  properties:
+    output: "[parameters('Token')]"
+    showSecrets: "[parameters('showSecrets')]"
+
+
+```
+
+### DSC run and setup Azure DevOps
+
+```bash
+
+dsc -l debug config set --file .\dsc_resources_ado.dsc.yaml    
+
+```
+
 ## Change log
 
 A full list of changes in each version can be found in the [change log](https://github.com/mimachniak/AzureDevOpsDscv3/blob/main/CHANGELOG.md).
