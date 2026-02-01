@@ -122,6 +122,16 @@ resources:
 
 ### DSC run and setup Azure DevOps
 
+```powershell 
+
+#(Note: If you are on a 32-bit system, use .x86 instead).
+winget install Microsoft.VCRedist.2015+.x64 
+
+# Install latest stable
+winget install --id 9NVTPZWRC6KQ --source msstore
+
+```
+
 ```bash
 
 dsc --version
