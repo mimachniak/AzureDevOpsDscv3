@@ -88,7 +88,7 @@ DscResourcesToExport = @('ProjectResource', 'OrganizationUserResource', 'Organiz
             # ExternalModuleDependencies = @('Microsoft.PowerShell.Management', 'Microsoft.PowerShell.Utility')
             ProjectUri                 = 'https://github.com/mimachniak/AzureDevOpsDscv3'
             LicenseUri                 = 'https://github.com/mimachniak/AzureDevOpsDscv3/blob/main/LICENSE'
-            IconUri = ''
+            IconUri = 'https://github.com/mimachniak/AzureDevOpsDscv3/blob/main/AzureDevOpsDscv3.png'
             Tags         = @('DesiredStateConfiguration', 'DSC', 'DSCResourceKit', 'DSCResource')
 
             # ReleaseNotes of this module
