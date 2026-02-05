@@ -132,4 +132,124 @@ Describe 'OrganizationGroupResource' {
             $org | Should -Be 'TestOrganization'
         }
     }
+
+    Context 'When testing OrganizationGroupResource Test/Set/Get methods' {
+        It 'Test() should return true when group exists with matching license' {
+            Mock Invoke-RestMethod {
+                return @{ value = @(
+                    @{ id = 'g1'; group = @{ originId = 'group-123' }; licenseRule = @{ accountLicenseType = 'stakeholder' } }
+                ) }
+            }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'group-123'
+                Organization = 'TestOrg'
+                pat = 'token'
+                AccessLevel = 'Stakeholder'
+                Ensure = 'Present'
+            }
+
+            $resource.Test() | Should -BeTrue
+            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
+        }
+
+        It 'Test() should return true when group missing and Ensure=Absent' {
+            Mock Invoke-RestMethod { return @{ value = @() } }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'missing-group'
+                Organization = 'TestOrg'
+                pat = 'token'
+                Ensure = 'Absent'
+            }
+
+            $resource.Test() | Should -BeTrue
+        }
+
+        It 'Set() should create group when missing' {
+            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } { return @{ value = @() } }
+            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'POST' } { return @{ id = 'g1' } }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'group-123'
+                GroupDisplayName = 'Test Group'
+                Organization = 'TestOrg'
+                pat = 'token'
+                Ensure = 'Present'
+            }
+
+            $resource.Set()
+            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'POST' }
+        }
+
+        It 'Set() should update group when exists' {
+            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
+                return @{ value = @(
+                    @{ id = 'g1'; group = @{ originId = 'group-123' }; licenseRule = @{ accountLicenseType = 'express' } }
+                ) }
+            }
+            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'PATCH' } { return $null }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'group-123'
+                Organization = 'TestOrg'
+                pat = 'token'
+                AccessLevel = 'BasicPlusTestPlans'
+                Ensure = 'Present'
+            }
+
+            $resource.Set()
+            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'PATCH' }
+        }
+
+        It 'Set() should delete group when Ensure=Absent and group exists' {
+            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
+                return @{ value = @(
+                    @{ id = 'g1'; group = @{ originId = 'group-123' } }
+                ) }
+            }
+            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'DELETE' } { return $null }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'group-123'
+                Organization = 'TestOrg'
+                pat = 'token'
+                Ensure = 'Absent'
+            }
+
+            $resource.Set()
+            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'DELETE' }
+        }
+
+        It 'Get() should return Present when group found' {
+            Mock Invoke-RestMethod {
+                return @{ value = @(
+                    @{ id = 'g1'; group = @{ originId = 'group-123'; displayName = 'Test Group' }; licenseRule = @{ accountLicenseType = 'express' } }
+                ) }
+            }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'group-123'
+                Organization = 'TestOrg'
+                pat = 'token'
+            }
+
+            $result = $resource.Get()
+            $result.Ensure | Should -Be 'Present'
+            $result.AccessLevel | Should -Be 'Basic'
+        }
+
+        It 'Get() should return Absent when group missing' {
+            Mock Invoke-RestMethod { return @{ value = @() } }
+
+            $resource = [OrganizationGroupResource]@{
+                GroupOriginId = 'missing-group'
+                Organization = 'TestOrg'
+                pat = 'token'
+            }
+
+            $result = $resource.Get()
+            $result.Ensure | Should -Be 'Absent'
+        }
+    }
 }
