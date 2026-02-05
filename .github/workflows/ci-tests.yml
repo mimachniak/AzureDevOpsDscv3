@@ -10,6 +10,11 @@ jobs:
   test:
     name: Run Pester Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+      pull-requests: write
     
     steps:
     - name: Checkout repository
