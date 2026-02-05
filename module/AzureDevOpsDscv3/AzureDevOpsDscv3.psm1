@@ -19,6 +19,12 @@ enum RequiredAction
     Error
 }
 
+enum ProjectPermissionLevel {
+    ProjectAdministrator
+    ProjectContributor
+    ProjectReader
+}
+
 <#
 .SYNOPSIS
 Manages Azure DevOps projects for an organization.
@@ -778,6 +784,252 @@ class OrganizationGroupResource {
             $result.Ensure = [Ensure]::Absent
             $result.pat = $this.pat
             $result.apiVersion = $this.apiVersion
+            return $result
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Manages Azure DevOps project-level permissions for a user or group.
+.PARAMETER ProjectName
+Azure DevOps project name.
+.PARAMETER IdentityDescriptor
+Identity descriptor for user or group (e.g., Microsoft.IdentityModel.Claims.ClaimsIdentity;...)
+.PARAMETER Organization
+Azure DevOps organization name.
+.PARAMETER PermissionLevel
+Permission level: Project Administrator, Project Contributor, or Project Reader.
+.PARAMETER Ensure
+Desired state: Present or Absent.
+.PARAMETER pat
+Personal access token used for authentication.
+.PARAMETER apiVersion
+Azure DevOps REST API version.
+.PARAMETER namespaceId
+Security namespace ID for project permissions.
+.PARAMETER securityToken
+Optional security token. If not provided, project ID is used.
+#>
+[DscResource()]
+class ProjectPermissionResource {
+    [DscProperty(Key)]
+    [string]$ProjectName
+
+    [DscProperty(Key)]
+    [string]$IdentityDescriptor
+
+    [DscProperty(Mandatory)]
+    [string]$Organization
+
+    [DscProperty()]
+    [ValidateSet('Project Administrator','Project Contributor','Project Reader')]
+    [string]$PermissionLevel = 'Project Reader'
+
+    [DscProperty()]
+    [Ensure]$Ensure = [Ensure]::Present
+
+    [DscProperty(Mandatory)]
+    [Alias('Token','PersonalAccessToken')]
+    [string]$pat
+
+    [DscProperty()]
+    [string]$apiVersion = '7.1-preview.1'
+
+    [DscProperty()]
+    [string]$namespaceId = '52d39943-cb85-4d7f-8fa8-c6baac873819'
+
+    [DscProperty()]
+    [string]$securityToken
+
+    hidden [string] GetTokenValue() {
+        if ($this.pat -is [hashtable]) {
+            $keyNames = @('value', 'secureString', 'Token', 'PersonalAccessToken', 'pat', '_value')
+            foreach ($key in $keyNames) {
+                if ($this.pat.ContainsKey($key)) {
+                    return $this.pat[$key].ToString()
+                }
+            }
+
+            $firstKey = $this.pat.Keys | Select-Object -First 1
+            if ($firstKey) {
+                return $this.pat[$firstKey].ToString()
+            }
+        }
+
+        return $this.pat.ToString()
+    }
+
+    hidden [string] GetOrganizationValue() {
+        if ($this.Organization -is [hashtable]) {
+            $firstValue = $this.Organization.Values | Select-Object -First 1
+            if ($firstValue) { return $firstValue.ToString() }
+        }
+        return $this.Organization
+    }
+
+    hidden [int] GetPermissionBits() {
+        $reader = 1
+        $contributor = 3
+        $administrator = 63
+
+        return switch ($this.PermissionLevel) {
+            'Project Administrator' { $administrator }
+            'Project Contributor' { $contributor }
+            'Project Reader' { $reader }
+            default { $reader }
+        }
+    }
+
+    hidden [string] GetPermissionLevelFromBits([int]$allowBits) {
+        if (($allowBits -band 63) -eq 63) { return 'Project Administrator' }
+        if (($allowBits -band 3) -eq 3) { return 'Project Contributor' }
+        if (($allowBits -band 1) -eq 1) { return 'Project Reader' }
+        return 'Project Reader'
+    }
+
+    hidden [object] CallProjectApi([string]$Method, [string]$UriSuffix, [string]$Body) {
+        [string]$StringToken = $this.GetTokenValue()
+        [string]$OrgName = $this.GetOrganizationValue()
+
+        $Base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$StringToken"))
+        $BaseUrl = "https://dev.azure.com/$OrgName/_apis"
+        $Uri = $BaseUrl + "/projects" + $UriSuffix + "?api-version=7.1"
+        $Headers = @{
+            Authorization = "Basic $Base64AuthInfo"
+            "Content-Type" = "application/json"
+        }
+
+        $Params = @{
+            Uri = $Uri
+            Method = $Method
+            Headers = $Headers
+            ErrorAction = 'Stop'
+        }
+
+        if ($Body) { $Params.Body = $Body }
+
+        return Invoke-RestMethod @Params
+    }
+
+    hidden [object] CallAccessControlEntries([string]$Method, [string]$Query, [string]$Body) {
+        [string]$StringToken = $this.GetTokenValue()
+        [string]$OrgName = $this.GetOrganizationValue()
+
+        $Base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$StringToken"))
+        $BaseUrl = "https://dev.azure.com/$OrgName/_apis"
+        $Uri = $BaseUrl + "/accesscontrolentries/$($this.namespaceId)" + $Query + "&api-version=$($this.apiVersion)"
+        $Headers = @{
+            Authorization = "Basic $Base64AuthInfo"
+            "Content-Type" = "application/json"
+        }
+
+        $Params = @{
+            Uri = $Uri
+            Method = $Method
+            Headers = $Headers
+            ErrorAction = 'Stop'
+        }
+
+        if ($Body) { $Params.Body = $Body }
+
+        return Invoke-RestMethod @Params
+    }
+
+    hidden [string] GetProjectId() {
+        $encodedName = [uri]::EscapeDataString($this.ProjectName)
+        $project = $this.CallProjectApi('GET', "/$encodedName", $null)
+        return $project.id
+    }
+
+    hidden [string] GetSecurityToken() {
+        if (![string]::IsNullOrWhiteSpace($this.securityToken)) {
+            return $this.securityToken
+        }
+
+        return $this.GetProjectId()
+    }
+
+    [bool] Test() {
+        try {
+            $token = $this.GetSecurityToken()
+            $descriptor = [uri]::EscapeDataString($this.IdentityDescriptor)
+            $tokenEncoded = [uri]::EscapeDataString($token)
+            $response = $this.CallAccessControlEntries('GET', "?token=$tokenEncoded&descriptors=$descriptor", $null)
+
+            if ($null -eq $response -or $null -eq $response.value -or $response.count -eq 0) {
+                return $this.Ensure -eq [Ensure]::Absent
+            }
+
+            $entry = $response.value | Select-Object -First 1
+            $desiredBits = $this.GetPermissionBits()
+            $hasDesired = (($entry.allow -band $desiredBits) -eq $desiredBits) -and (($entry.deny -band $desiredBits) -eq 0)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                return $hasDesired
+            }
+
+            return -not $hasDesired
+        }
+        catch {
+            return $this.Ensure -eq [Ensure]::Absent
+        }
+    }
+
+    [void] Set() {
+        $token = $this.GetSecurityToken()
+        $descriptor = $this.IdentityDescriptor
+        $desiredBits = $this.GetPermissionBits()
+
+        if ($this.Ensure -eq [Ensure]::Present) {
+            $payload = @{
+                token = $token
+                merge = $true
+                accessControlEntries = @(
+                    @{ descriptor = $descriptor; allow = $desiredBits; deny = 0 }
+                )
+            }
+
+            $jsonPayload = $payload | ConvertTo-Json -Depth 10
+            $this.CallAccessControlEntries('POST', "?token=$([uri]::EscapeDataString($token))", $jsonPayload) | Out-Null
+        }
+        else {
+            $tokenEncoded = [uri]::EscapeDataString($token)
+            $descriptorEncoded = [uri]::EscapeDataString($descriptor)
+            $this.CallAccessControlEntries('DELETE', "?tokens=$tokenEncoded&descriptors=$descriptorEncoded", $null) | Out-Null
+        }
+    }
+
+    [ProjectPermissionResource] Get() {
+        $result = [ProjectPermissionResource]::new()
+        $result.ProjectName = $this.ProjectName
+        $result.IdentityDescriptor = $this.IdentityDescriptor
+        $result.Organization = $this.GetOrganizationValue()
+        $result.pat = $this.pat
+        $result.apiVersion = $this.apiVersion
+        $result.namespaceId = $this.namespaceId
+        $result.securityToken = $this.securityToken
+
+        try {
+            $token = $this.GetSecurityToken()
+            $descriptor = [uri]::EscapeDataString($this.IdentityDescriptor)
+            $tokenEncoded = [uri]::EscapeDataString($token)
+            $response = $this.CallAccessControlEntries('GET', "?token=$tokenEncoded&descriptors=$descriptor", $null)
+
+            if ($null -eq $response -or $null -eq $response.value -or $response.count -eq 0) {
+                $result.Ensure = [Ensure]::Absent
+                $result.PermissionLevel = 'Project Reader'
+                return $result
+            }
+
+            $entry = $response.value | Select-Object -First 1
+            $result.PermissionLevel = $this.GetPermissionLevelFromBits($entry.allow)
+            $result.Ensure = [Ensure]::Present
+            return $result
+        }
+        catch {
+            $result.Ensure = [Ensure]::Absent
+            $result.PermissionLevel = 'Project Reader'
             return $result
         }
     }

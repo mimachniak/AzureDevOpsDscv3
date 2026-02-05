@@ -74,7 +74,7 @@ VariablesToExport = '*'
 AliasesToExport = '*'
 
 # DSC resources to export from this module
-DscResourcesToExport = @('ProjectResource', 'OrganizationUserResource', 'OrganizationGroupResource')
+DscResourcesToExport = @('ProjectResource', 'OrganizationUserResource', 'OrganizationGroupResource', 'ProjectPermissionResource')
 
 # List of all modules packaged with this module
 # ModuleList = @()

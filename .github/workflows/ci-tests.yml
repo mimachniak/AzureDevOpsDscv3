@@ -10,7 +10,9 @@ on:
   
 permissions:
   checks: write
-  contents: read
+  contents: write
+  issues: read
+  pull-requests: read
 
 jobs:
   test:
@@ -20,6 +22,67 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Update changelog from branch issue
+      if: >-
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.fork == false
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $branchName = $env:GITHUB_HEAD_REF
+        if ([string]::IsNullOrWhiteSpace($branchName)) {
+          Write-Host 'No branch name available. Skipping.'
+          exit 0
+        }
+
+        $match = [regex]::Match($branchName, '(\d{1,6})')
+        if (-not $match.Success) {
+          Write-Host "No issue number found in branch name '$branchName'. Skipping."
+          exit 0
+        }
+
+        $issueNumber = $match.Groups[1].Value
+        $repo = $env:GITHUB_REPOSITORY
+        $headers = @{
+          Authorization = "Bearer $env:GITHUB_TOKEN"
+          Accept = 'application/vnd.github+json'
+        }
+
+        try {
+          $issue = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/issues/$issueNumber" -Headers $headers -Method Get
+        } catch {
+          Write-Host "Issue #$issueNumber not found. Skipping."
+          exit 0
+        }
+
+        $changelogPath = 'CHANGELOG.md'
+        if (-not (Test-Path $changelogPath)) {
+          Write-Host 'CHANGELOG.md not found. Skipping.'
+          exit 0
+        }
+
+        $content = Get-Content $changelogPath -Raw
+        if ($content -notmatch '## \[Unreleased\]') {
+          $content = $content -replace '(# Changelog\s*)', "`$1`n## [Unreleased]`n`n### Added`n"
+        }
+
+        $entry = "- #$issueNumber $($issue.title)"
+        if ($content -notmatch [regex]::Escape($entry)) {
+          $content = $content -replace '(## \[Unreleased\][\s\S]*?### Added\s*)', "`$1`n$entry"
+          Set-Content -Path $changelogPath -Value $content -NoNewline
+        } else {
+          Write-Host 'Changelog already contains entry. Skipping.'
+          exit 0
+        }
+
+        git status --porcelain
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add $changelogPath
+        git commit -m "Update changelog for #$issueNumber"
+        git push
 
     - name: Install PowerShell modules
       shell: pwsh
