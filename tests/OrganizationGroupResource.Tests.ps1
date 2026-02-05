@@ -3,12 +3,10 @@ BeforeAll {
     $modulePath = Join-Path $PSScriptRoot '..' 'module' 'AzureDevOpsDscv3' 'AzureDevOpsDscv3.psd1'
     Import-Module $modulePath -Force
     
-    # For PowerShell classes in psm1 files, we need to dot-source the file
+    # For PowerShell classes in psm1 files, dot-source the file
     # Using the call operator (.) to execute the script in the current scope
     $psmPath = Join-Path $PSScriptRoot '..' 'module' 'AzureDevOpsDscv3' 'AzureDevOpsDscv3.psm1'
-    # Read and execute the content to load the classes into the current scope
-    $scriptContent = [System.IO.File]::ReadAllText($psmPath)
-    . ([scriptblock]::Create($scriptContent))
+    . $psmPath
 }
 
 Describe 'OrganizationGroupResource' {
