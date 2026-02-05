@@ -6,6 +6,7 @@ This is a refactored version of the **AzureDevOpsDsc** project, originally creat
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-PowerShell%207%2B-lightgrey)
 ![Downloads](https://img.shields.io/powershellgallery/dt/AzureDevOpsDscv3)
+![CI Tests](https://github.com/mimachniak/AzureDevOpsDscv3/actions/workflows/ci-tests.yml/badge.svg)
 
 
 ---
@@ -22,6 +23,7 @@ This is a refactored version of the **AzureDevOpsDsc** project, originally creat
 - [Setup and Example of Configuration](#setup-and-example-of-configuration)
   - [DSC V3 Configuration File](#dsc-v3-configuration-file)
   - [DSC Run and Setup Azure DevOps](#dsc-run-and-setup-azure-devops)
+- [Testing](#testing)
 - [Change Log](#change-log)
 
 ---
@@ -139,6 +141,45 @@ dsc --version
 dsc -l debug config set --file .\dsc_resources_ado.dsc.yaml    
 
 ```
+
+## Testing
+
+This project includes comprehensive unit tests using the Pester testing framework.
+
+### Running Tests Locally
+
+To run the tests locally, you need to have Pester 5.0+ installed:
+
+```powershell
+# Install Pester if not already installed
+Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+
+# Run all tests
+Invoke-Pester -Path ./tests
+
+# Run tests with code coverage
+$config = New-PesterConfiguration
+$config.Run.Path = './tests'
+$config.CodeCoverage.Enabled = $true
+$config.CodeCoverage.Path = './module/AzureDevOpsDscv3/AzureDevOpsDscv3.psm1'
+$config.Output.Verbosity = 'Detailed'
+Invoke-Pester -Configuration $config
+```
+
+### Continuous Integration
+
+The project uses GitHub Actions for continuous integration. Tests are automatically run on:
+- Push to the `main` branch
+- Pull requests targeting the `main` branch
+
+The CI workflow:
+1. Sets up a PowerShell environment
+2. Installs required dependencies
+3. Runs all Pester tests
+4. Generates code coverage reports
+5. Uploads test results and coverage artifacts
+
+Test results and code coverage reports are available as artifacts in the GitHub Actions workflow runs.
 
 ## Change log
 
