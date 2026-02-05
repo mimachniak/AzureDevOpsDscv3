@@ -90,105 +90,107 @@ Describe 'ProjectResource' {
         }
     }
 
-    Context 'When testing ProjectResource Test/Set/Get methods' {
-        It 'Test() should return true when project exists and Ensure=Present' {
-            Mock Invoke-RestMethod {
-                return @{
-                    name = 'TestProject'
-                    description = 'Desc'
-                    capabilities = @{ versioncontrol = @{ sourceControlType = 'Git' } }
+    InModuleScope AzureDevOpsDscv3 {
+        Context 'When testing ProjectResource Test/Set/Get methods' {
+            It 'Test() should return true when project exists and Ensure=Present' {
+                Mock Invoke-RestMethod {
+                    return @{
+                        name = 'TestProject'
+                        description = 'Desc'
+                        capabilities = @{ versioncontrol = @{ sourceControlType = 'Git' } }
+                    }
                 }
-            }
 
-            $resource = [ProjectResource]@{
-                ProjectName = 'TestProject'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Present'
-            }
-
-            $resource.Test() | Should -BeTrue
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
-        }
-
-        It 'Test() should return true when project missing and Ensure=Absent' {
-            Mock Invoke-RestMethod { throw 'NotFound' }
-
-            $resource = [ProjectResource]@{
-                ProjectName = 'MissingProject'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Absent'
-            }
-
-            $resource.Test() | Should -BeTrue
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
-        }
-
-        It 'Set() should create project when missing' {
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } { throw 'NotFound' }
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'POST' } { return @{ id = 'p1' } }
-
-            $resource = [ProjectResource]@{
-                ProjectName = 'NewProject'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Present'
-            }
-
-            $resource.Set()
-
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'POST' }
-        }
-
-        It 'Set() should delete project when Ensure=Absent and project exists' {
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
-                return @{ id = 'p1' }
-            }
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'DELETE' } { return $null }
-
-            $resource = [ProjectResource]@{
-                ProjectName = 'OldProject'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Absent'
-            }
-
-            $resource.Set()
-
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'DELETE' }
-        }
-
-        It 'Get() should return Present when project found' {
-            Mock Invoke-RestMethod {
-                return @{
-                    name = 'TestProject'
-                    description = 'Desc'
-                    capabilities = @{ versioncontrol = @{ sourceControlType = 'Git' } }
+                $resource = [ProjectResource]@{
+                    ProjectName = 'TestProject'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Present'
                 }
+
+                $resource.Test() | Should -BeTrue
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
             }
 
-            $resource = [ProjectResource]@{
-                ProjectName = 'TestProject'
-                Organization = 'TestOrg'
-                pat = 'token'
+            It 'Test() should return true when project missing and Ensure=Absent' {
+                Mock Invoke-RestMethod { throw 'NotFound' }
+
+                $resource = [ProjectResource]@{
+                    ProjectName = 'MissingProject'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Absent'
+                }
+
+                $resource.Test() | Should -BeTrue
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
             }
 
-            $result = $resource.Get()
-            $result.Ensure | Should -Be 'Present'
-        }
+            It 'Set() should create project when missing' {
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } { throw 'NotFound' }
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'POST' } { return @{ id = 'p1' } }
 
-        It 'Get() should return Absent when project missing' {
-            Mock Invoke-RestMethod { throw 'NotFound' }
+                $resource = [ProjectResource]@{
+                    ProjectName = 'NewProject'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Present'
+                }
 
-            $resource = [ProjectResource]@{
-                ProjectName = 'MissingProject'
-                Organization = 'TestOrg'
-                pat = 'token'
+                $resource.Set()
+
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'POST' }
             }
 
-            $result = $resource.Get()
-            $result.Ensure | Should -Be 'Absent'
+            It 'Set() should delete project when Ensure=Absent and project exists' {
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
+                    return @{ id = 'p1' }
+                }
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'DELETE' } { return $null }
+
+                $resource = [ProjectResource]@{
+                    ProjectName = 'OldProject'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Absent'
+                }
+
+                $resource.Set()
+
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'DELETE' }
+            }
+
+            It 'Get() should return Present when project found' {
+                Mock Invoke-RestMethod {
+                    return @{
+                        name = 'TestProject'
+                        description = 'Desc'
+                        capabilities = @{ versioncontrol = @{ sourceControlType = 'Git' } }
+                    }
+                }
+
+                $resource = [ProjectResource]@{
+                    ProjectName = 'TestProject'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                }
+
+                $result = $resource.Get()
+                $result.Ensure | Should -Be 'Present'
+            }
+
+            It 'Get() should return Absent when project missing' {
+                Mock Invoke-RestMethod { throw 'NotFound' }
+
+                $resource = [ProjectResource]@{
+                    ProjectName = 'MissingProject'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                }
+
+                $result = $resource.Get()
+                $result.Ensure | Should -Be 'Absent'
+            }
         }
     }
 }

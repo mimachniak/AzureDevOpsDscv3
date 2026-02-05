@@ -123,122 +123,124 @@ Describe 'OrganizationUserResource' {
         }
     }
 
-    Context 'When testing OrganizationUserResource Test/Set/Get methods' {
-        It 'Test() should return true when user exists with matching license' {
-            Mock Invoke-RestMethod {
-                return @{ value = @(
-                    @{ id = 'u1'; user = @{ principalName = 'test@example.com' }; accessLevel = @{ accountLicenseType = 'stakeholder' } }
-                ) }
+    InModuleScope AzureDevOpsDscv3 {
+        Context 'When testing OrganizationUserResource Test/Set/Get methods' {
+            It 'Test() should return true when user exists with matching license' {
+                Mock Invoke-RestMethod {
+                    return @{ value = @(
+                        @{ id = 'u1'; user = @{ principalName = 'test@example.com' }; accessLevel = @{ accountLicenseType = 'stakeholder' } }
+                    ) }
+                }
+
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'test@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    AccessLevel = 'Stakeholder'
+                    Ensure = 'Present'
+                }
+
+                $resource.Test() | Should -BeTrue
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
             }
 
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'test@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
-                AccessLevel = 'Stakeholder'
-                Ensure = 'Present'
+            It 'Test() should return true when user missing and Ensure=Absent' {
+                Mock Invoke-RestMethod { return @{ value = @() } }
+
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'missing@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Absent'
+                }
+
+                $resource.Test() | Should -BeTrue
             }
 
-            $resource.Test() | Should -BeTrue
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'GET' }
-        }
+            It 'Set() should create user when missing' {
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } { return @{ value = @() } }
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'POST' } { return @{ id = 'u1' } }
 
-        It 'Test() should return true when user missing and Ensure=Absent' {
-            Mock Invoke-RestMethod { return @{ value = @() } }
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'new@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Present'
+                }
 
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'missing@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Absent'
+                $resource.Set()
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'POST' }
             }
 
-            $resource.Test() | Should -BeTrue
-        }
+            It 'Set() should update user when exists' {
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
+                    return @{ value = @(
+                        @{ id = 'u1'; user = @{ principalName = 'test@example.com' }; accessLevel = @{ accountLicenseType = 'express' } }
+                    ) }
+                }
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'PATCH' } { return $null }
 
-        It 'Set() should create user when missing' {
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } { return @{ value = @() } }
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'POST' } { return @{ id = 'u1' } }
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'test@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    AccessLevel = 'BasicPlusTestPlans'
+                    Ensure = 'Present'
+                }
 
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'new@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Present'
+                $resource.Set()
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'PATCH' }
             }
 
-            $resource.Set()
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'POST' }
-        }
+            It 'Set() should delete user when Ensure=Absent and user exists' {
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
+                    return @{ value = @(
+                        @{ id = 'u1'; user = @{ principalName = 'test@example.com' } }
+                    ) }
+                }
+                Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'DELETE' } { return $null }
 
-        It 'Set() should update user when exists' {
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
-                return @{ value = @(
-                    @{ id = 'u1'; user = @{ principalName = 'test@example.com' }; accessLevel = @{ accountLicenseType = 'express' } }
-                ) }
-            }
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'PATCH' } { return $null }
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'test@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                    Ensure = 'Absent'
+                }
 
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'test@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
-                AccessLevel = 'BasicPlusTestPlans'
-                Ensure = 'Present'
-            }
-
-            $resource.Set()
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'PATCH' }
-        }
-
-        It 'Set() should delete user when Ensure=Absent and user exists' {
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'GET' } {
-                return @{ value = @(
-                    @{ id = 'u1'; user = @{ principalName = 'test@example.com' } }
-                ) }
-            }
-            Mock Invoke-RestMethod -ParameterFilter { $Method -eq 'DELETE' } { return $null }
-
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'test@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
-                Ensure = 'Absent'
+                $resource.Set()
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'DELETE' }
             }
 
-            $resource.Set()
-            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter { $Method -eq 'DELETE' }
-        }
+            It 'Get() should return Present when user found' {
+                Mock Invoke-RestMethod {
+                    return @{ value = @(
+                        @{ id = 'u1'; user = @{ principalName = 'test@example.com' }; accessLevel = @{ accountLicenseType = 'express' } }
+                    ) }
+                }
 
-        It 'Get() should return Present when user found' {
-            Mock Invoke-RestMethod {
-                return @{ value = @(
-                    @{ id = 'u1'; user = @{ principalName = 'test@example.com' }; accessLevel = @{ accountLicenseType = 'express' } }
-                ) }
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'test@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                }
+
+                $result = $resource.Get()
+                $result.Ensure | Should -Be 'Present'
+                $result.AccessLevel | Should -Be 'Basic'
             }
 
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'test@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
+            It 'Get() should return Absent when user missing' {
+                Mock Invoke-RestMethod { return @{ value = @() } }
+
+                $resource = [OrganizationUserResource]@{
+                    UserPrincipalName = 'missing@example.com'
+                    Organization = 'TestOrg'
+                    pat = 'token'
+                }
+
+                $result = $resource.Get()
+                $result.Ensure | Should -Be 'Absent'
             }
-
-            $result = $resource.Get()
-            $result.Ensure | Should -Be 'Present'
-            $result.AccessLevel | Should -Be 'Basic'
-        }
-
-        It 'Get() should return Absent when user missing' {
-            Mock Invoke-RestMethod { return @{ value = @() } }
-
-            $resource = [OrganizationUserResource]@{
-                UserPrincipalName = 'missing@example.com'
-                Organization = 'TestOrg'
-                pat = 'token'
-            }
-
-            $result = $resource.Get()
-            $result.Ensure | Should -Be 'Absent'
         }
     }
 }
