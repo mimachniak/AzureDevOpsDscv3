@@ -1,0 +1,18 @@
+# Test artifacts
+testResults.xml
+coverage.xml
+*.trx
+
+# PowerShell module artifacts
+*.psm1.tmp
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+bin/
+obj/
+out/
