@@ -1,0 +1,60 @@
+name: CI - Pester Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Pester Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install PowerShell modules
+      shell: pwsh
+      run: |
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+        
+    - name: Run Pester tests
+      shell: pwsh
+      run: |
+        $config = New-PesterConfiguration
+        $config.Run.Path = './tests'
+        $config.Run.Exit = $true
+        $config.TestResult.Enabled = $true
+        $config.TestResult.OutputPath = 'testResults.xml'
+        $config.TestResult.OutputFormat = 'NUnitXml'
+        $config.CodeCoverage.Enabled = $true
+        $config.CodeCoverage.Path = './module/AzureDevOpsDscv3/AzureDevOpsDscv3.psm1'
+        $config.CodeCoverage.OutputPath = 'coverage.xml'
+        $config.CodeCoverage.OutputFormat = 'JaCoCo'
+        $config.Output.Verbosity = 'Detailed'
+        
+        Invoke-Pester -Configuration $config
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: testResults.xml
+        
+    - name: Upload code coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: code-coverage
+        path: coverage.xml
+        
+    - name: Publish test results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: testResults.xml
+        check_name: Pester Test Results
