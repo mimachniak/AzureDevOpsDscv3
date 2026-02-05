@@ -152,6 +152,7 @@ To run the tests locally, you need to have Pester 5.0+ installed:
 
 ```powershell
 # Install Pester if not already installed
+# Note: -Force is used to ensure the latest version is installed
 Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
 
 # Run all tests

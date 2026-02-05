@@ -1,12 +1,14 @@
 BeforeAll {
-    # Import the module using the manifest
+    # Import the module using the manifest - this makes the module available
     $modulePath = Join-Path $PSScriptRoot '..' 'module' 'AzureDevOpsDscv3' 'AzureDevOpsDscv3.psd1'
     Import-Module $modulePath -Force
     
-    # Load the classes by reading and executing the psm1 file content
+    # For PowerShell classes in psm1 files, we need to dot-source the file
+    # Using the call operator (.) to execute the script in the current scope
     $psmPath = Join-Path $PSScriptRoot '..' 'module' 'AzureDevOpsDscv3' 'AzureDevOpsDscv3.psm1'
-    $moduleContent = Get-Content $psmPath -Raw
-    Invoke-Expression $moduleContent
+    # Read and execute the content to load the classes into the current scope
+    $scriptContent = [System.IO.File]::ReadAllText($psmPath)
+    . ([scriptblock]::Create($scriptContent))
 }
 
 Describe 'OrganizationGroupResource' {
