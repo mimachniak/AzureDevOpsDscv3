@@ -118,6 +118,25 @@ resources:
         AccessLevel: Basic
         Ensure: Present
         pat: "[parameters('Token')]"
+    - name: AddPermissionProject
+      type: AzureDevOpsDscv3/ProjectUserPermissionResource
+      properties:
+        ProjectName: TestDSCv11
+        PermissionLevel: ProjectAdministrators  # ProjectAdministrators, ProjectValidUsers, Readers, or ReleaseAdministrators.
+        UserPrincipalName: UserPrincipalName
+        Organization: ExampleOrganization
+        Ensure: Absent
+        pat: "[parameters('Token')]"
+    - name: AddPermissionProject
+      type: AzureDevOpsDscv3/ProjectGroupPermissionResource
+      properties:
+        ProjectName: TestDSCv11
+        PermissionLevel: ProjectAdministrators  # ProjectAdministrators, ProjectValidUsers, Readers, or ReleaseAdministrators.
+        GroupDisplayName: EntraID-GroupDisplayName
+        GroupOriginId: EntraID-GroupObjectID   # group descriptor
+        Organization: ExampleOrganization
+        Ensure: Absent
+        pat: "[parameters('Token')]"
 
 
 ```
