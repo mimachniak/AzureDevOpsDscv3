@@ -794,7 +794,7 @@ class OrganizationGroupResource {
 
 <#
 .SYNOPSIS
-Manages Azure DevOps project-level group membership (permissions).
+Manages Azure DevOps project-level user membership (permissions).
 .DESCRIPTION
 Adds or removes a user (by UPN) to/from a project-level security group such as
 Build Administrators, Contributors, Project Administrators, Project Valid Users,
@@ -816,7 +816,7 @@ Personal access token used for authentication.
 Azure DevOps REST API version for the Graph endpoints.
 #>
 [DscResource()]
-class ProjectPermissionResource {
+class ProjectUserPermissionResource {
     [DscProperty(Key)]
     [string]$ProjectName
 
@@ -1050,7 +1050,7 @@ class ProjectPermissionResource {
         }
     }
 
-    [ProjectPermissionResource] Get() {
+    [ProjectUserPermissionResource] Get() {
         try {
             Write-Verbose "Get() - Retrieving project permission: $($this.UserPrincipalName) -> $($this.PermissionLevel) in $($this.ProjectName)"
 
@@ -1060,7 +1060,7 @@ class ProjectPermissionResource {
             $userDescriptor  = $this.GetUserDescriptor()
             $isMember        = $this.IsMember($userDescriptor, $groupDescriptor)
 
-            $result = [ProjectPermissionResource]::new()
+            $result = [ProjectUserPermissionResource]::new()
             $result.ProjectName       = $this.ProjectName
             $result.UserPrincipalName = $this.UserPrincipalName
             $result.PermissionLevel   = $this.PermissionLevel
@@ -1073,7 +1073,7 @@ class ProjectPermissionResource {
         catch {
             Write-Error "Get() - Error: $_"
 
-            $result = [ProjectPermissionResource]::new()
+            $result = [ProjectUserPermissionResource]::new()
             $result.ProjectName       = $this.ProjectName
             $result.UserPrincipalName = $this.UserPrincipalName
             $result.PermissionLevel   = $this.PermissionLevel
@@ -1081,6 +1081,323 @@ class ProjectPermissionResource {
             $result.Ensure            = [Ensure]::Absent
             $result.pat               = $this.pat
             $result.apiVersion        = $this.apiVersion
+            return $result
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Manages Azure DevOps project-level security group membership (permissions) for Entra groups.
+.DESCRIPTION
+Adds or removes an Entra (Azure AD) security group to/from a project-level security group such as
+Build Administrators, Contributors, Project Administrators, Project Valid Users,
+Readers, or Release Administrators. Uses the Azure DevOps Graph REST API.
+.PARAMETER ProjectName
+Azure DevOps project name.
+.PARAMETER GroupOriginId
+The Origin ID (Object ID) of the Entra security group to add or remove from the project group.
+.PARAMETER GroupDisplayName
+Optional display name of the Entra security group (for reference).
+.PARAMETER PermissionLevel
+The project-level group to manage: BuildAdministrators, Contributors,
+ProjectAdministrators, ProjectValidUsers, Readers, or ReleaseAdministrators.
+.PARAMETER Organization
+Azure DevOps organization name.
+.PARAMETER Ensure
+Desired state: Present (add membership) or Absent (remove membership).
+.PARAMETER pat
+Personal access token used for authentication.
+.PARAMETER apiVersion
+Azure DevOps REST API version for the Graph endpoints.
+#>
+[DscResource()]
+class ProjectGroupPermissionResource {
+    [DscProperty(Key)]
+    [string]$ProjectName
+
+    [DscProperty(Key)]
+    [string]$GroupOriginId
+
+    [DscProperty()]
+    [string]$GroupDisplayName
+
+    [DscProperty(Mandatory)]
+    [ProjectPermissionLevel]$PermissionLevel
+
+    [DscProperty(Mandatory)]
+    [string]$Organization
+
+    [DscProperty()]
+    [Ensure]$Ensure = [Ensure]::Present
+
+    [DscProperty(Mandatory)]
+    [Alias('Token','PersonalAccessToken')]
+    [string]$pat
+
+    [DscProperty()]
+    [string]$apiVersion = "7.1-preview.1"
+
+    hidden [string] GetTokenValue() {
+        if ($this.pat -is [hashtable]) {
+            $keyNames = @("value", "secureString", "Token", "PersonalAccessToken", "pat", "_value")
+            foreach ($key in $keyNames) {
+                if ($this.pat.ContainsKey($key)) {
+                    return $this.pat[$key].ToString()
+                }
+            }
+            $firstKey = $this.pat.Keys | Select-Object -First 1
+            if ($firstKey) {
+                return $this.pat[$firstKey].ToString()
+            }
+        }
+        return $this.pat.ToString()
+    }
+
+    hidden [string] GetOrganizationValue() {
+        if ($this.Organization -is [hashtable]) {
+            $firstValue = $this.Organization.Values | Select-Object -First 1
+            if ($firstValue) { return $firstValue.ToString() }
+        }
+        return $this.Organization
+    }
+
+    # Call the main dev.azure.com REST API
+    hidden [object] CallProjectApi([string]$Method, [string]$UriSuffix, [string]$Body) {
+        [string]$StringToken = $this.GetTokenValue()
+        [string]$OrgName = $this.GetOrganizationValue()
+
+        if ([string]::IsNullOrWhiteSpace($StringToken)) { throw "Token is null or empty" }
+        if ([string]::IsNullOrWhiteSpace($OrgName)) { throw "Organization is null or empty" }
+
+        $Base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$StringToken"))
+        $Uri = "https://dev.azure.com/$OrgName/_apis" + $UriSuffix
+        $Headers = @{
+            Authorization  = "Basic $Base64AuthInfo"
+            "Content-Type" = "application/json"
+        }
+
+        $Params = @{
+            Uri         = $Uri
+            Method      = $Method
+            Headers     = $Headers
+            ErrorAction = "Stop"
+        }
+        if ($Body) { $Params.Body = $Body }
+
+        try {
+            return Invoke-RestMethod @Params
+        }
+        catch {
+            Write-Error "ProjectGroupPermissionResource.CallProjectApi error: $_"
+            throw
+        }
+    }
+
+    # Call the vssps.dev.azure.com Graph REST API
+    hidden [object] CallGraphApi([string]$Method, [string]$UriSuffix, [string]$Body) {
+        [string]$StringToken = $this.GetTokenValue()
+        [string]$OrgName = $this.GetOrganizationValue()
+
+        if ([string]::IsNullOrWhiteSpace($StringToken)) { throw "Token is null or empty" }
+        if ([string]::IsNullOrWhiteSpace($OrgName)) { throw "Organization is null or empty" }
+
+        $Base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$StringToken"))
+        $Uri = "https://vssps.dev.azure.com/$OrgName/_apis/graph" + $UriSuffix
+        $Headers = @{
+            Authorization  = "Basic $Base64AuthInfo"
+            "Content-Type" = "application/json"
+        }
+
+        $Params = @{
+            Uri         = $Uri
+            Method      = $Method
+            Headers     = $Headers
+            ErrorAction = "Stop"
+        }
+        if ($Body) { $Params.Body = $Body }
+
+        try {
+            return Invoke-RestMethod @Params
+        }
+        catch {
+            Write-Error "ProjectGroupPermissionResource.CallGraphApi error: $_"
+            throw
+        }
+    }
+
+    # Map enum value to the Azure DevOps display name for the project group
+    hidden [string] GetGroupDisplayName() {
+        $result = switch ($this.PermissionLevel) {
+            'BuildAdministrators'   { "Build Administrators" }
+            'Contributors'          { "Contributors" }
+            'ProjectAdministrators' { "Project Administrators" }
+            'ProjectValidUsers'     { "Project Valid Users" }
+            'Readers'               { "Readers" }
+            'ReleaseAdministrators' { "Release Administrators" }
+            default { throw "Unknown PermissionLevel: $($this.PermissionLevel)" }
+        }
+        return $result
+    }
+
+    # Resolve the project ID from its name
+    hidden [string] GetProjectId() {
+        $EncodedName = [uri]::EscapeDataString($this.ProjectName)
+        $project = $this.CallProjectApi("GET", "/projects/$($EncodedName)?api-version=7.1", $null)
+        return $project.id
+    }
+
+    # Get the scope descriptor for a project (needed for Graph group queries)
+    hidden [string] GetProjectScopeDescriptor([string]$ProjectId) {
+        $response = $this.CallGraphApi("GET", "/descriptors/$($ProjectId)?api-version=$($this.apiVersion)", $null)
+        return $response.value
+    }
+
+    # Find the target group descriptor within the project scope
+    hidden [string] GetGroupDescriptor([string]$ScopeDescriptor) {
+        $targetName = $this.GetGroupDisplayName()
+        $groups = $this.CallGraphApi("GET", "/groups?scopeDescriptor=$ScopeDescriptor&api-version=$($this.apiVersion)", $null)
+
+        if ($null -eq $groups -or $null -eq $groups.value) {
+            throw "No groups found for project '$($this.ProjectName)'"
+        }
+
+        $group = $groups.value | Where-Object { $_.displayName -eq $targetName }
+        if ($null -eq $group) {
+            throw "Group '$targetName' not found in project '$($this.ProjectName)'"
+        }
+
+        return $group.descriptor
+    }
+
+    # Resolve Entra security group descriptor by Origin ID, adding it to the org if needed
+    hidden [string] GetSourceGroupDescriptor() {
+        $groups = $this.CallGraphApi("GET", "/groups?api-version=$($this.apiVersion)", $null)
+
+        if ($null -ne $groups -and $null -ne $groups.value) {
+            $sourceGroup = $groups.value | Where-Object { $_.originId -eq $this.GroupOriginId }
+            if ($null -ne $sourceGroup) {
+                return $sourceGroup.descriptor
+            }
+        }
+
+        # Group not found in the organization - add it from Entra
+        Write-Verbose "GetSourceGroupDescriptor() - Group with Origin ID '$($this.GroupOriginId)' not found. Adding to organization..."
+        
+        $addGroupPayload = @{
+            originId = $this.GroupOriginId
+        }
+        $jsonPayload = $addGroupPayload | ConvertTo-Json -Depth 10
+        
+        try {
+            $newGroup = $this.CallGraphApi("POST", "/groups?api-version=$($this.apiVersion)", $jsonPayload)
+            if ($null -eq $newGroup -or [string]::IsNullOrWhiteSpace($newGroup.descriptor)) {
+                throw "Failed to add Entra group with Origin ID '$($this.GroupOriginId)' to the organization."
+            }
+            Write-Verbose "GetSourceGroupDescriptor() - Successfully added group. Descriptor: $($newGroup.descriptor)"
+            return $newGroup.descriptor
+        }
+        catch {
+            throw "Failed to add Entra security group with Origin ID '$($this.GroupOriginId)' to the organization. Error: $_"
+        }
+    }
+
+    # Check if the source group is already a member of the target project group
+    hidden [bool] IsMember([string]$SourceGroupDescriptor, [string]$ProjectGroupDescriptor) {
+        try {
+            $encodedSourceGroup  = [uri]::EscapeDataString($SourceGroupDescriptor)
+            $encodedProjectGroup = [uri]::EscapeDataString($ProjectGroupDescriptor)
+            $this.CallGraphApi("GET", "/memberships/$encodedSourceGroup/$($encodedProjectGroup)?api-version=$($this.apiVersion)", $null)
+            return $true
+        }
+        catch {
+            return $false
+        }
+    }
+
+    [bool] Test() {
+        try {
+            Write-Verbose "Test() - Checking project group permission: $($this.GroupOriginId) -> $($this.PermissionLevel) in $($this.ProjectName)"
+
+            $projectId            = $this.GetProjectId()
+            $scopeDescriptor      = $this.GetProjectScopeDescriptor($projectId)
+            $projectGroupDesc     = $this.GetGroupDescriptor($scopeDescriptor)
+            $sourceGroupDescriptor = $this.GetSourceGroupDescriptor()
+            $isMember             = $this.IsMember($sourceGroupDescriptor, $projectGroupDesc)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                return $isMember
+            }
+            else {
+                return -not $isMember
+            }
+        }
+        catch {
+            Write-Error "Test() - Error: $_"
+            return $this.Ensure -eq [Ensure]::Absent
+        }
+    }
+
+    [void] Set() {
+        try {
+            Write-Verbose "Set() - Setting project group permission: $($this.GroupOriginId) -> $($this.PermissionLevel) in $($this.ProjectName), Ensure=$($this.Ensure)"
+
+            $projectId            = $this.GetProjectId()
+            $scopeDescriptor      = $this.GetProjectScopeDescriptor($projectId)
+            $projectGroupDesc     = $this.GetGroupDescriptor($scopeDescriptor)
+            $sourceGroupDescriptor = $this.GetSourceGroupDescriptor()
+
+            $encodedSourceGroup  = [uri]::EscapeDataString($sourceGroupDescriptor)
+            $encodedProjectGroup = [uri]::EscapeDataString($projectGroupDesc)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                $this.CallGraphApi("PUT", "/memberships/$encodedSourceGroup/$($encodedProjectGroup)?api-version=$($this.apiVersion)", "")
+                Write-Verbose "Set() - Added group '$($this.GroupOriginId)' to '$($this.GetGroupDisplayName())' in project '$($this.ProjectName)'"
+            }
+            else {
+                $this.CallGraphApi("DELETE", "/memberships/$encodedSourceGroup/$($encodedProjectGroup)?api-version=$($this.apiVersion)", $null)
+                Write-Verbose "Set() - Removed group '$($this.GroupOriginId)' from '$($this.GetGroupDisplayName())' in project '$($this.ProjectName)'"
+            }
+        }
+        catch {
+            Write-Error "Set() - Error: $_"
+            throw
+        }
+    }
+
+    [ProjectGroupPermissionResource] Get() {
+        try {
+            Write-Verbose "Get() - Retrieving project group permission: $($this.GroupOriginId) -> $($this.PermissionLevel) in $($this.ProjectName)"
+
+            $projectId            = $this.GetProjectId()
+            $scopeDescriptor      = $this.GetProjectScopeDescriptor($projectId)
+            $projectGroupDesc     = $this.GetGroupDescriptor($scopeDescriptor)
+            $sourceGroupDescriptor = $this.GetSourceGroupDescriptor()
+            $isMember             = $this.IsMember($sourceGroupDescriptor, $projectGroupDesc)
+
+            $result = [ProjectGroupPermissionResource]::new()
+            $result.ProjectName      = $this.ProjectName
+            $result.GroupOriginId    = $this.GroupOriginId
+            $result.GroupDisplayName = $this.GroupDisplayName
+            $result.PermissionLevel  = $this.PermissionLevel
+            $result.Organization     = $this.GetOrganizationValue()
+            $result.Ensure           = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
+            $result.pat              = $this.pat
+            $result.apiVersion       = $this.apiVersion
+            return $result
+        }
+        catch {
+            Write-Error "Get() - Error: $_"
+
+            $result = [ProjectGroupPermissionResource]::new()
+            $result.ProjectName      = $this.ProjectName
+            $result.GroupOriginId    = $this.GroupOriginId
+            $result.GroupDisplayName = $this.GroupDisplayName
+            $result.PermissionLevel  = $this.PermissionLevel
+            $result.Organization     = $this.GetOrganizationValue()
+            $result.Ensure           = [Ensure]::Absent
+            $result.pat              = $this.pat
+            $result.apiVersion       = $this.apiVersion
             return $result
         }
     }
