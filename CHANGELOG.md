@@ -6,7 +6,8 @@
 
 ### Added
 
-- #2 Add DSC resource for project permissions## [1.0.0] - 2026-02-01
+
+- #12 Update docmentation for new resources- #2 Add DSC resource for project permissions## [1.0.0] - 2026-02-01
 
 ### Added
 
