@@ -65,7 +65,7 @@ Manages Azure DevOps group entitlements for an organization.
 | `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
 
 
-## OrganizationGroupResource
+## ProjectnGroupResource
 
 Manages Azure DevOps group entitlements for an organization.
 
@@ -83,7 +83,7 @@ Manages Azure DevOps group entitlements for an organization.
 | `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
 
 
-## OrganizationUserResource
+## ProjectUserResource
 
 Manages Azure DevOps user entitlements for an organization.
 
