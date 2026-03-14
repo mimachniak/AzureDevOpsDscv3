@@ -63,3 +63,40 @@ Manages Azure DevOps group entitlements for an organization.
 | `Ensure` | Desired state: `Present` or `Absent` | None | ✅ Yes |
 | `pat` | Personal access token used for authentication | None | ✅ Yes |
 | `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
+
+
+## OrganizationGroupResource
+
+Manages Azure DevOps group entitlements for an organization.
+
+### Parameters
+
+| Parameter | Description | Default Value | Required |
+|-----------|-------------|---------------|----------|
+| `GroupOriginId` | Origin ID of the group in Azure DevOps (Entra ID Group Object ID) | None | ✅ Yes |
+| `GroupDisplayName` | Display name for the group | None | ❌ No |
+| `Organization` | Azure DevOps organization name | None | ✅ Yes |
+| `ProjectName` | Azure DevOps project name. | None | ✅ Yes |
+| `PermissionLevel` | The project-level group to manage: `BuildAdministrators`, `Contributors`, `ProjectAdministrators`, `ProjectValidUsers`, `Readers`, or `ReleaseAdministrators`. | None | ✅ Yes  |
+| `Ensure` | Desired state: `Present` or `Absent` | None | ✅ Yes |
+| `pat` | Personal access token used for authentication | None | ✅ Yes |
+| `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
+
+
+## OrganizationUserResource
+
+Manages Azure DevOps user entitlements for an organization.
+
+### Parameters
+
+| Parameter | Description | Default Value | Required |
+|-----------|-------------|---------------|----------|
+| `UserPrincipalName` | User principal name (email) to manage entitlements for | None | ✅ Yes |
+| `Organization` | Azure DevOps organization name | None | ✅ Yes |
+| `ProjectName` | Azure DevOps project name. | None | ✅ Yes |
+| `PermissionLevel` | The project-level group to manage: `BuildAdministrators`, `Contributors`, `ProjectAdministrators`, `ProjectValidUsers`, `Readers`, or `ReleaseAdministrators`. | None | ✅ Yes  |
+| `Ensure` | Desired state: `Present` or `Absent` | None | ✅ Yes |
+| `pat` | Personal access token used for authentication | None | ✅ Yes |
+| `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
+
+
