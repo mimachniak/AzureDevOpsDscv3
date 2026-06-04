@@ -1,0 +1,148 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "AzureDevOps/ProjectGroupPermission",
+    "version": "0.1.0",
+    "description": "Manages an Entra security group's membership in a project-level Azure DevOps security group.",
+    "tags": [
+        "AzureDevOps",
+        "DevOps",
+        "Project",
+        "Permission",
+        "Group",
+        "Entra",
+        "Windows",
+        "Linux",
+        "macOS"
+    ],
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.project-group-permission.ps1 Get"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.project-group-permission.ps1 Set"
+        ],
+        "input": "stdin",
+        "implementsPretest": false,
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.project-group-permission.ps1 Test"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "Operation failed (API error or unexpected exception)"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "AzureDevOps/ProjectGroupPermission",
+            "description": "Properties that describe an Entra security group's membership in a project-level Azure DevOps security group.",
+            "type": "object",
+            "required": [
+                "projectName",
+                "groupOriginId",
+                "permissionLevel",
+                "organization",
+                "pat"
+            ],
+            "properties": {
+                "projectName": {
+                    "title": "Project Name",
+                    "description": "The Azure DevOps project name. Part of the composite key.",
+                    "type": "string"
+                },
+                "groupOriginId": {
+                    "title": "Group Origin ID",
+                    "description": "The Azure AD Object ID (origin ID) of the Entra security group. Part of the composite key.",
+                    "type": "string"
+                },
+                "groupDisplayName": {
+                    "title": "Group Display Name",
+                    "description": "Optional display name of the Entra security group (informational only).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "permissionLevel": {
+                    "title": "Permission Level",
+                    "description": "The project-level security group to manage the Entra group's membership in.",
+                    "type": "string",
+                    "enum": [
+                        "BuildAdministrators",
+                        "Contributors",
+                        "ProjectAdministrators",
+                        "ProjectValidUsers",
+                        "Readers",
+                        "ReleaseAdministrators"
+                    ]
+                },
+                "organization": {
+                    "title": "Organization",
+                    "description": "The Azure DevOps organization name.",
+                    "type": "string"
+                },
+                "ensure": {
+                    "title": "Ensure",
+                    "description": "Whether the group should be a member ('Present') or not a member ('Absent') of the project group. Defaults to 'Present'.",
+                    "type": "string",
+                    "enum": [
+                        "Present",
+                        "Absent"
+                    ],
+                    "default": "Present"
+                },
+                "pat": {
+                    "title": "Personal Access Token",
+                    "description": "A Personal Access Token with 'Graph > Read & manage' and 'Project and Team > Read' permissions.",
+                    "type": "string"
+                },
+                "apiVersion": {
+                    "title": "API Version",
+                    "description": "Azure DevOps REST API version to use for Graph endpoints. Defaults to '7.1-preview.1'.",
+                    "type": "string",
+                    "default": "7.1-preview.1"
+                },
+                "_inDesiredState": {
+                    "title": "In Desired State",
+                    "description": "Indicates whether the resource is in the desired state. Populated by the Test operation.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

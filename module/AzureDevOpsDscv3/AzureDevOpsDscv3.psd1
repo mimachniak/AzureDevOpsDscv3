@@ -101,6 +101,9 @@ DscResourcesToExport = @('ProjectResource', 'OrganizationUserResource', 'Organiz
             v. 1.0.1 - 2026-03-13
                 - Add class: ProjectUserPermissionResource
                 - Add class: ProjectGroupPermissionResource
+            v. 1.0.2 - 2026-04-01
+                - Add class: OrganizationUserPermissionResource
+                - Add class: OrganizationGroupPermissionResource
             '
 
             # Prerelease string of this module

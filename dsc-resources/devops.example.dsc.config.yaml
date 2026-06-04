@@ -1,0 +1,83 @@
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+# ---------------------------------------------------------------------------
+# Example DSC v3 configuration using native AzureDevOps resources
+# ---------------------------------------------------------------------------
+# Prerequisites:
+#   - pwsh (PowerShell 7+) installed and on PATH
+#   - dsc-resources\ folder on DSC_RESOURCE_PATH (or in the same directory)
+#   - A valid PAT stored in environment variable ADO_PAT
+#
+# Run:
+#   $env:DSC_RESOURCE_PATH = "D:\Git\AzureDevOpsDscv3\dsc-resources\project;D:\Git\AzureDevOpsDscv3\dsc-resources\organization-user;D:\Git\AzureDevOpsDscv3\dsc-resources\organization-group;D:\Git\AzureDevOpsDscv3\dsc-resources\project-user-permission;D:\Git\AzureDevOpsDscv3\dsc-resources\project-group-permission"
+#   dsc config set --document devops.example.dsc.config.yaml --parameters devops.example.dsc.config.parameters.yaml
+# ---------------------------------------------------------------------------
+parameters:
+  Organization:
+    type: string
+    defaultValue: myorg
+  Token:
+    type: string
+    defaultValue: ""
+  EntraGroupObjectId:
+    type: string
+    defaultValue: "00000000-0000-0000-0000-000000000000"
+
+resources:
+
+  - name: Create DevOps Project
+    type: AzureDevOps/Project
+    properties:
+      projectName: MyDscProject
+      description: Project created and managed via native DSC v3
+      sourceControlType: Git
+      organization: "[parameters('Organization')]"
+      ensure: Present
+      pat: "[parameters('Token')]"
+
+  - name: Add User to Organization
+    type: AzureDevOps/OrganizationUser
+    dependsOn:
+      - Create DevOps Project
+    properties:
+      userPrincipalName: developer@contoso.com
+      organization: "[parameters('Organization')]"
+      accessLevel: Basic
+      ensure: Present
+      pat: "[parameters('Token')]"
+
+  - name: Add Entra Group Entitlement
+    type: AzureDevOps/OrganizationGroup
+    dependsOn:
+      - Create DevOps Project
+    properties:
+      groupOriginId: "[parameters('EntraGroupObjectId')]"
+      groupDisplayName: My Entra Security Group
+      organization: "[parameters('Organization')]"
+      accessLevel: Basic
+      ensure: Present
+      pat: "[parameters('Token')]"
+
+  - name: Add User as Project Contributor
+    type: AzureDevOps/ProjectUserPermission
+    dependsOn:
+      - Add User to Organization
+    properties:
+      projectName: MyDscProject
+      userPrincipalName: developer@contoso.com
+      permissionLevel: Contributors
+      organization: "[parameters('Organization')]"
+      ensure: Present
+      pat: "[parameters('Token')]"
+
+  - name: Add Entra Group as Project Readers
+    type: AzureDevOps/ProjectGroupPermission
+    dependsOn:
+      - Add Entra Group Entitlement
+    properties:
+      projectName: MyDscProject
+      groupOriginId: "[parameters('EntraGroupObjectId')]"
+      groupDisplayName: My Entra Security Group
+      permissionLevel: Readers
+      organization: "[parameters('Organization')]"
+      ensure: Present
+      pat: "[parameters('Token')]"
