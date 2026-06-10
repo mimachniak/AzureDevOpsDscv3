@@ -122,8 +122,16 @@ function Get-ProjectId {
 
     $encoded = [uri]::EscapeDataString($ProjectName)
     $uri     = "https://dev.azure.com/$Organization/_apis/projects/$($encoded)?api-version=7.1"
-    $project = Invoke-AdoApi -Method GET -Uri $uri -Token $Token
-    return $project.id
+    try {
+        $project = Invoke-AdoApi -Method GET -Uri $uri -Token $Token
+        return $project.id
+    }
+    catch {
+        if ($_ -match 'does not exist' -or $_ -match 'TF200016' -or $_ -match '404') {
+            return $null
+        }
+        throw
+    }
 }
 
 function Get-ProjectScopeDescriptor {
@@ -210,7 +218,20 @@ switch ($Operation) {
 
     'Get' {
         try {
-            $projectId       = Get-ProjectId -Organization $org -ProjectName $projectName -Token $token
+            $projectId = Get-ProjectId -Organization $org -ProjectName $projectName -Token $token
+            if ($null -eq $projectId) {
+                [ordered]@{
+                    projectName       = $projectName
+                    userPrincipalName = $upn
+                    permissionLevel   = $permLevel
+                    organization      = $org
+                    ensure            = 'Absent'
+                    pat               = $desired.pat
+                    apiVersion        = $apiVersion
+                    _inDesiredState   = $null
+                } | ConvertTo-Json -Compress
+                break
+            }
             $scopeDescriptor = Get-ProjectScopeDescriptor -Organization $org -ProjectId $projectId -Token $token -ApiVersion $apiVersion
             $groupDescriptor = Get-ProjectGroupDescriptor -Organization $org -ScopeDescriptor $scopeDescriptor -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
             $userDescriptor  = Get-UserDescriptor -Organization $org -Upn $upn -Token $token -ApiVersion $apiVersion
@@ -237,7 +258,20 @@ switch ($Operation) {
 
     'Test' {
         try {
-            $projectId       = Get-ProjectId -Organization $org -ProjectName $projectName -Token $token
+            $projectId = Get-ProjectId -Organization $org -ProjectName $projectName -Token $token
+            if ($null -eq $projectId) {
+                [ordered]@{
+                    projectName       = $projectName
+                    userPrincipalName = $upn
+                    permissionLevel   = $permLevel
+                    organization      = $org
+                    ensure            = 'Absent'
+                    pat               = $desired.pat
+                    apiVersion        = $apiVersion
+                    _inDesiredState   = ($ensure -eq 'Absent')
+                } | ConvertTo-Json -Compress
+                break
+            }
             $scopeDescriptor = Get-ProjectScopeDescriptor -Organization $org -ProjectId $projectId -Token $token -ApiVersion $apiVersion
             $groupDescriptor = Get-ProjectGroupDescriptor -Organization $org -ScopeDescriptor $scopeDescriptor -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
             $userDescriptor  = Get-UserDescriptor -Organization $org -Upn $upn -Token $token -ApiVersion $apiVersion

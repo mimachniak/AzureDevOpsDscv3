@@ -21,6 +21,15 @@ parameters:
   EntraGroupObjectId:
     type: string
     defaultValue: "00000000-0000-0000-0000-000000000000"
+  OrgAccessLevel:
+    type: string
+    defaultValue: Basic
+  UserProjectPermissionLevel:
+    type: string
+    defaultValue: Contributors
+  GroupProjectPermissionLevel:
+    type: string
+    defaultValue: Readers
 
 resources:
 
@@ -37,34 +46,34 @@ resources:
   - name: Add User to Organization
     type: AzureDevOps/OrganizationUser
     dependsOn:
-      - Create DevOps Project
+      - "[resourceId('AzureDevOps/Project','Create DevOps Project')]"
     properties:
       userPrincipalName: developer@contoso.com
       organization: "[parameters('Organization')]"
-      accessLevel: Basic
+      accessLevel: "[parameters('OrgAccessLevel')]"
       ensure: Present
       pat: "[parameters('Token')]"
 
   - name: Add Entra Group Entitlement
     type: AzureDevOps/OrganizationGroup
     dependsOn:
-      - Create DevOps Project
+      - "[resourceId('AzureDevOps/Project','Create DevOps Project')]"
     properties:
       groupOriginId: "[parameters('EntraGroupObjectId')]"
       groupDisplayName: My Entra Security Group
       organization: "[parameters('Organization')]"
-      accessLevel: Basic
+      accessLevel: "[parameters('OrgAccessLevel')]"
       ensure: Present
       pat: "[parameters('Token')]"
 
   - name: Add User as Project Contributor
     type: AzureDevOps/ProjectUserPermission
     dependsOn:
-      - Add User to Organization
+      - "[resourceId('AzureDevOps/OrganizationUser','Add User to Organization')]"
     properties:
       projectName: MyDscProject
       userPrincipalName: developer@contoso.com
-      permissionLevel: Contributors
+      permissionLevel: "[parameters('UserProjectPermissionLevel')]"
       organization: "[parameters('Organization')]"
       ensure: Present
       pat: "[parameters('Token')]"
@@ -72,12 +81,12 @@ resources:
   - name: Add Entra Group as Project Readers
     type: AzureDevOps/ProjectGroupPermission
     dependsOn:
-      - Add Entra Group Entitlement
+      - "[resourceId('AzureDevOps/OrganizationGroup','Add Entra Group Entitlement')]"
     properties:
       projectName: MyDscProject
       groupOriginId: "[parameters('EntraGroupObjectId')]"
       groupDisplayName: My Entra Security Group
-      permissionLevel: Readers
+      permissionLevel: "[parameters('GroupProjectPermissionLevel')]"
       organization: "[parameters('Organization')]"
       ensure: Present
       pat: "[parameters('Token')]"
