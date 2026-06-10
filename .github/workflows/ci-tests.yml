@@ -92,7 +92,39 @@ jobs:
       run: |
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
         Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
-        
+
+    - name: Install DSC v3
+      shell: pwsh
+      run: |
+        $release   = Invoke-RestMethod 'https://api.github.com/repos/PowerShell/DSC/releases/latest' -UseBasicParsing
+        $version   = $release.tag_name -replace '^v', ''
+        $assetName = "DSC-$version-x86_64-unknown-linux-gnu.tar.gz"
+        $asset     = $release.assets | Where-Object name -EQ $assetName
+        if (-not $asset) { throw "Asset '$assetName' not found in release $($release.tag_name)" }
+
+        $dir = '/tmp/dsc-v3'
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "$dir/dsc.tar.gz" -UseBasicParsing
+        tar -xzf "$dir/dsc.tar.gz" -C $dir
+        chmod +x "$dir/dsc"
+
+        # Make dsc available to subsequent steps
+        "$dir" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+        # Set DSC_RESOURCE_PATH for the test step
+        $resBase  = Join-Path $env:GITHUB_WORKSPACE 'dsc-resources'
+        $resPaths = @(
+            'project'
+            'organization-user'
+            'organization-group'
+            'project-user-permission'
+            'project-group-permission'
+        ) | ForEach-Object { Join-Path $resBase $_ }
+        "DSC_RESOURCE_PATH=$($resPaths -join ':')" |
+            Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+        Write-Host "DSC v$version installed to $dir"
+
     - name: Run Pester tests
       shell: pwsh
       run: |
