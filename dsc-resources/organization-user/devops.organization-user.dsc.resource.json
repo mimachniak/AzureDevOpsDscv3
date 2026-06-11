@@ -1,0 +1,129 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "AzureDevOps/OrganizationUser",
+    "version": "0.1.0",
+    "description": "Manages an Azure DevOps user entitlement (access level) within an organization.",
+    "tags": [
+        "AzureDevOps",
+        "DevOps",
+        "User",
+        "Entitlement",
+        "Windows",
+        "Linux",
+        "macOS"
+    ],
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.organization-user.ps1 Get"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.organization-user.ps1 Set"
+        ],
+        "input": "stdin",
+        "implementsPretest": false,
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.organization-user.ps1 Test"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "Operation failed (API error or unexpected exception)"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "AzureDevOps/OrganizationUser",
+            "description": "Properties that describe an Azure DevOps user entitlement in an organization.",
+            "type": "object",
+            "required": [
+                "userPrincipalName",
+                "organization",
+                "pat"
+            ],
+            "properties": {
+                "userPrincipalName": {
+                    "title": "User Principal Name",
+                    "description": "The UPN (email address) of the user to manage. Acts as the unique key for this resource.",
+                    "type": "string"
+                },
+                "organization": {
+                    "title": "Organization",
+                    "description": "The Azure DevOps organization name.",
+                    "type": "string"
+                },
+                "accessLevel": {
+                    "title": "Access Level",
+                    "description": "The license access level for the user. Defaults to 'Stakeholder'.",
+                    "type": "string",
+                    "enum": [
+                        "Stakeholder",
+                        "Basic",
+                        "BasicPlusTestPlans"
+                    ],
+                    "default": "Stakeholder"
+                },
+                "ensure": {
+                    "title": "Ensure",
+                    "description": "Whether the user entitlement should exist ('Present') or be removed ('Absent'). Defaults to 'Present'.",
+                    "type": "string",
+                    "enum": [
+                        "Present",
+                        "Absent"
+                    ],
+                    "default": "Present"
+                },
+                "pat": {
+                    "title": "Personal Access Token",
+                    "description": "A Personal Access Token with 'Member Entitlement Management > Read & write' permission.",
+                    "type": "string"
+                },
+                "apiVersion": {
+                    "title": "API Version",
+                    "description": "Azure DevOps REST API version to use. Defaults to '7.1-preview.1'.",
+                    "type": "string",
+                    "default": "7.1-preview.1"
+                },
+                "_inDesiredState": {
+                    "title": "In Desired State",
+                    "description": "Indicates whether the resource is in the desired state. Populated by the Test operation.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

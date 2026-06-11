@@ -1,0 +1,141 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "AzureDevOps/Project",
+    "version": "0.1.0",
+    "description": "Manages an Azure DevOps project within an organization (create, update, or delete).",
+    "tags": [
+        "AzureDevOps",
+        "DevOps",
+        "Project",
+        "Windows",
+        "Linux",
+        "macOS"
+    ],
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.project.ps1 Get"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.project.ps1 Set"
+        ],
+        "input": "stdin",
+        "implementsPretest": false,
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./devops.project.ps1 Test"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "Operation failed (API error or unexpected exception)"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "AzureDevOps/Project",
+            "description": "Properties that describe an Azure DevOps project.",
+            "type": "object",
+            "required": [
+                "projectName",
+                "organization",
+                "pat"
+            ],
+            "properties": {
+                "projectName": {
+                    "title": "Project Name",
+                    "description": "The name of the Azure DevOps project. Acts as the unique key for this resource.",
+                    "type": "string"
+                },
+                "description": {
+                    "title": "Description",
+                    "description": "Optional description for the project.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "sourceControlType": {
+                    "title": "Source Control Type",
+                    "description": "The version control system for the project. Defaults to 'Git'.",
+                    "type": "string",
+                    "enum": [
+                        "Git",
+                        "Tfvc"
+                    ],
+                    "default": "Git"
+                },
+                "organization": {
+                    "title": "Organization",
+                    "description": "The Azure DevOps organization name (e.g. 'myorg' in https://dev.azure.com/myorg).",
+                    "type": "string"
+                },
+                "ensure": {
+                    "title": "Ensure",
+                    "description": "Whether the project should exist ('Present') or be removed ('Absent'). Defaults to 'Present'.",
+                    "type": "string",
+                    "enum": [
+                        "Present",
+                        "Absent"
+                    ],
+                    "default": "Present"
+                },
+                "pat": {
+                    "title": "Personal Access Token",
+                    "description": "A Personal Access Token (PAT) with sufficient permissions to manage projects in the organization.",
+                    "type": "string"
+                },
+                "templateTypeId": {
+                    "title": "Template Type ID",
+                    "description": "The process template GUID used when creating the project. Defaults to Agile (adcc42ab-9882-485e-a3ed-7678f01f66bc).",
+                    "type": "string",
+                    "default": "adcc42ab-9882-485e-a3ed-7678f01f66bc"
+                },
+                "apiVersion": {
+                    "title": "API Version",
+                    "description": "Azure DevOps REST API version to use. Defaults to '7.1'.",
+                    "type": "string",
+                    "default": "7.1"
+                },
+                "_inDesiredState": {
+                    "title": "In Desired State",
+                    "description": "Indicates whether the resource is in the desired state. Populated by the Test operation.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}
