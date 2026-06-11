@@ -20,5 +20,11 @@
 
 - Add class: ProjectUserPermissionResource
 - Add class: ProjectGroupPermissionResource
+  
+## [1.0.1] - 2026-06-11
+
+### Added
+
+- DSCV3 resources for: Project, Organization Permissions, Project Permissions
 
 
