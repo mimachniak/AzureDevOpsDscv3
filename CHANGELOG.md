@@ -21,7 +21,7 @@
 - Add class: ProjectUserPermissionResource
 - Add class: ProjectGroupPermissionResource
   
-## [1.0.1] - 2026-06-11
+## [1.0.2] - 2026-06-11
 
 ### Added
 
