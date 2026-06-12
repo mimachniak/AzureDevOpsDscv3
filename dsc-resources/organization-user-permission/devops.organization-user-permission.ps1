@@ -120,34 +120,19 @@ function Get-GroupDisplayName {
     return $map[$PermissionLevel]
 }
 
-function Get-CollectionId {
-    param([string]$Organization, [string]$Token)
-
-    $uri      = "https://dev.azure.com/$Organization/_apis/connectionData?connectOptions=none&lastChangeId=-1&lastChangeId64=-1"
-    $response = Invoke-AdoApi -Method GET -Uri $uri -Token $Token
-    return $response.instanceId
-}
-
-function Get-CollectionScopeDescriptor {
-    param([string]$Organization, [string]$CollectionId, [string]$Token, [string]$ApiVersion)
-
-    $uri      = "https://vssps.dev.azure.com/$Organization/_apis/graph/descriptors/$($CollectionId)?api-version=$ApiVersion"
-    $response = Invoke-AdoApi -Method GET -Uri $uri -Token $Token
-    return $response.value
-}
-
 function Get-OrgGroupDescriptor {
-    param([string]$Organization, [string]$ScopeDescriptor, [string]$GroupDisplayName, [string]$Token, [string]$ApiVersion)
+    param([string]$Organization, [string]$GroupDisplayName, [string]$Token, [string]$ApiVersion)
 
-    $uri    = "https://vssps.dev.azure.com/$Organization/_apis/graph/groups?scopeDescriptor=$ScopeDescriptor&api-version=$ApiVersion"
+    $uri    = "https://vssps.dev.azure.com/$Organization/_apis/graph/groups?api-version=$ApiVersion"
     $groups = Invoke-AdoApi -Method GET -Uri $uri -Token $Token
 
     if ($null -eq $groups -or $null -eq $groups.value) {
-        throw "No groups found for the organization scope."
+        throw "No groups found for organization '$Organization'."
     }
-    $group = $groups.value | Where-Object { $_.displayName -eq $GroupDisplayName } | Select-Object -First 1
+    $escapedOrg = [regex]::Escape($Organization)
+    $group = $groups.value | Where-Object { $_.displayName -eq $GroupDisplayName -and $_.principalName -match "^\[$escapedOrg\]" } | Select-Object -First 1
     if ($null -eq $group) {
-        throw "Organization group '$GroupDisplayName' not found."
+        throw "Organization group '$GroupDisplayName' not found in '$Organization'."
     }
     return $group.descriptor
 }
@@ -222,9 +207,7 @@ switch ($Operation) {
 
     'Get' {
         try {
-            $collectionId      = Get-CollectionId -Organization $org -Token $token
-            $scopeDescriptor   = Get-CollectionScopeDescriptor -Organization $org -CollectionId $collectionId -Token $token -ApiVersion $apiVersion
-            $groupDescriptor   = Get-OrgGroupDescriptor -Organization $org -ScopeDescriptor $scopeDescriptor -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
+            $groupDescriptor   = Get-OrgGroupDescriptor -Organization $org -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
             $userDescriptor    = Get-UserDescriptorIfExists -Organization $org -Upn $upn -Token $token -ApiVersion $apiVersion
 
             $isMember = $false
@@ -251,9 +234,7 @@ switch ($Operation) {
 
     'Test' {
         try {
-            $collectionId      = Get-CollectionId -Organization $org -Token $token
-            $scopeDescriptor   = Get-CollectionScopeDescriptor -Organization $org -CollectionId $collectionId -Token $token -ApiVersion $apiVersion
-            $groupDescriptor   = Get-OrgGroupDescriptor -Organization $org -ScopeDescriptor $scopeDescriptor -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
+            $groupDescriptor   = Get-OrgGroupDescriptor -Organization $org -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
             $userDescriptor    = Get-UserDescriptorIfExists -Organization $org -Upn $upn -Token $token -ApiVersion $apiVersion
 
             $isMember = $false
@@ -282,9 +263,7 @@ switch ($Operation) {
 
     'Set' {
         try {
-            $collectionId      = Get-CollectionId -Organization $org -Token $token
-            $scopeDescriptor   = Get-CollectionScopeDescriptor -Organization $org -CollectionId $collectionId -Token $token -ApiVersion $apiVersion
-            $groupDescriptor   = Get-OrgGroupDescriptor -Organization $org -ScopeDescriptor $scopeDescriptor -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
+            $groupDescriptor   = Get-OrgGroupDescriptor -Organization $org -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
             $userDescriptor    = Get-UserDescriptor -Organization $org -Upn $upn -Token $token -ApiVersion $apiVersion
 
             $encUser  = [uri]::EscapeDataString($userDescriptor)

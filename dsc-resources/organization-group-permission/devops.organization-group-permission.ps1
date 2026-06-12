@@ -219,9 +219,7 @@ switch ($Operation) {
 
     'Get' {
         try {
-            $collectionId    = Get-CollectionId -Organization $org -Token $token
-            $scopeDescriptor = Get-CollectionScopeDescriptor -Organization $org -CollectionId $collectionId -Token $token -ApiVersion $apiVersion
-            $orgGroupDesc    = Get-OrgGroupDescriptor -Organization $org -ScopeDescriptor $scopeDescriptor -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
+            $orgGroupDesc    = Get-OrgGroupDescriptor -Organization $org -GroupDisplayName $groupDisplayName -Token $token -ApiVersion $apiVersion
             $sourceGroupDesc = Get-SourceGroupDescriptorIfExists -Organization $org -GroupOriginId $originId -Token $token -ApiVersion $apiVersion
 
             $isMember = $false
