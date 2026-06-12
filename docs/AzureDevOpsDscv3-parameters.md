@@ -9,6 +9,10 @@ This document describes the parameters for each DSC resource included in the Azu
 - [ProjectResource](#projectresource)
 - [OrganizationUserResource](#organizationuserresource)
 - [OrganizationGroupResource](#organizationgroupresource)
+- [OrganizationUserPermissionResource](#organizationuserpermissionresource)
+- [OrganizationGroupPermissionResource](#organizationgrouppermissionresource)
+- [ProjectUserPermissionResource](#projectuserpermissionresource)
+- [ProjectGroupPermissionResource](#projectgrouppermissionresource)
 
 ---
 
@@ -64,10 +68,46 @@ Manages Azure DevOps group entitlements for an organization.
 | `pat` | Personal access token used for authentication | None | ✅ Yes |
 | `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
 
+---
 
-## ProjectnGroupResource
+## OrganizationUserPermissionResource
 
-Manages Azure DevOps group entitlements for an organization.
+Manages a user's membership in an organization-level (Project Collection) Azure DevOps security group.
+
+### Parameters
+
+| Parameter | Description | Default Value | Required |
+|-----------|-------------|---------------|----------|
+| `UserPrincipalName` | User principal name (email) to add or remove | None | ✅ Yes |
+| `Organization` | Azure DevOps organization name | None | ✅ Yes |
+| `PermissionLevel` | Organization-level group: `ProjectCollectionAdministrators`, `ProjectCollectionBuildAdministrators`, `ProjectCollectionBuildServiceAccounts`, `ProjectCollectionProxyServiceAccounts`, `ProjectCollectionServiceAccounts`, `ProjectCollectionTestServiceAccounts`, `ProjectCollectionValidUsers`, `ProjectScopedUsers`, or `SecurityServiceGroup` | None | ✅ Yes |
+| `Ensure` | Desired state: `Present` or `Absent` | `Present` | ❌ No |
+| `pat` | Personal access token used for authentication | None | ✅ Yes |
+| `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
+
+---
+
+## OrganizationGroupPermissionResource
+
+Manages an Entra (Azure AD) security group's membership in an organization-level (Project Collection) Azure DevOps security group. If the Entra group is not yet linked to the organization it is added automatically.
+
+### Parameters
+
+| Parameter | Description | Default Value | Required |
+|-----------|-------------|---------------|----------|
+| `GroupOriginId` | Origin ID (Object ID) of the Entra security group | None | ✅ Yes |
+| `GroupDisplayName` | Display name of the Entra security group (for reference) | None | ❌ No |
+| `Organization` | Azure DevOps organization name | None | ✅ Yes |
+| `PermissionLevel` | Organization-level group: `ProjectCollectionAdministrators`, `ProjectCollectionBuildAdministrators`, `ProjectCollectionBuildServiceAccounts`, `ProjectCollectionProxyServiceAccounts`, `ProjectCollectionServiceAccounts`, `ProjectCollectionTestServiceAccounts`, `ProjectCollectionValidUsers`, `ProjectScopedUsers`, or `SecurityServiceGroup` | None | ✅ Yes |
+| `Ensure` | Desired state: `Present` or `Absent` | `Present` | ❌ No |
+| `pat` | Personal access token used for authentication | None | ✅ Yes |
+| `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
+
+---
+
+## ProjectGroupPermissionResource
+
+Manages Azure DevOps project-level security group membership for an Entra (Azure AD) security group.
 
 ### Parameters
 
@@ -83,9 +123,9 @@ Manages Azure DevOps group entitlements for an organization.
 | `apiVersion` | Azure DevOps REST API version | `7.1-preview.1` | ❌ No |
 
 
-## ProjectUserResource
+## ProjectUserPermissionResource
 
-Manages Azure DevOps user entitlements for an organization.
+Manages Azure DevOps project-level security group membership for a user.
 
 ### Parameters
 
