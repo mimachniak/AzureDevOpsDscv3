@@ -27,4 +27,13 @@
 
 - DSCV3 resources for: Project, Organization Permissions, Project Permissions
 
+## [1.0.3] - 2026-06-12
+
+### Added
+
+- DSCv3 - native resources: OrganisationPermissions User nad group
+- PowerShell DSC resources - OrganisationPermissions User nad group
+- Update documentation
+
+
 
