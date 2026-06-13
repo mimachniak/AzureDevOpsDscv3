@@ -1,27 +1,41 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+
+# ---------------------------------------------------------------------------
+# Example DSC v3 configuration using native AzureDevOps resources
+# ---------------------------------------------------------------------------
+# Prerequisites:
+#   - pwsh (PowerShell 7+) installed and on PATH
+#   - dsc-resources\ folder on DSC_RESOURCE_PATH (or in the same directory)
+#   - A valid PAT stored in environment variable ADO_PAT
+#
+# Run:
+#   $env:DSC_RESOURCE_PATH = "D:\Git\AzureDevOpsDscv3\dsc-resources\project;D:\Git\AzureDevOpsDscv3\dsc-resources\organization-user;D:\Git\AzureDevOpsDscv3\dsc-resources\organization-group;D:\Git\AzureDevOpsDscv3\dsc-resources\project-user-permission;D:\Git\AzureDevOpsDscv3\dsc-resources\project-group-permission"
+#   dsc config set --document devops.example.dsc.config.yaml --parameters devops.example.dsc.config.parameters.yaml
+# ---------------------------------------------------------------------------
+
 parameters:
   Organization:
     type: string
-    defaultValue: YourOrganization
+    defaultValue: YourOrganizationName
   Token:
     type: string
-    defaultValue: "**********"
+    defaultValue: "*************************************"
 
 resources:
-  - name: OrgznationUserPermission
-    type: AzureDevOpsDscv3/OrganizationUserPermissionResource
+  - name: OrganizationUserPermission
+    type: AzureDevOps/OrganizationUserPermission
     properties:
-      UserPrincipalName: dev@contoso.com
-      Organization: "[parameters('Organization')]"
-      PermissionLevel: ProjectCollectionAdministrators
-      Ensure: Present
+      userPrincipalName: tomasz.kot@mmachniak.net
+      organization: "[parameters('Organization')]"
+      permissionLevel: ProjectCollectionAdministrators
+      ensure: Present
       pat: "[parameters('Token')]"
   - name: OrganizationGroupPermission
-    type: AzureDevOpsDscv3/OrganizationGroupPermissionResource
+    type: AzureDevOps/OrganizationGroupPermission
     properties:
-      GroupOriginId: "00000000-0000-0000-0000-000000000000"   # group descriptor
-      GroupDisplayName: GBA-AAD-ADO-Organization-permissions-DSC
-      Organization: "[parameters('Organization')]"
-      PermissionLevel: ProjectCollectionAdministrators
-      Ensure: Present
+      groupOriginId: "00000000-0000-0000-0000-000000000000"
+      groupDisplayName: Security Group Name
+      organization: "[parameters('Organization')]"
+      permissionLevel: ProjectCollectionAdministrators
+      ensure: Present
       pat: "[parameters('Token')]"
