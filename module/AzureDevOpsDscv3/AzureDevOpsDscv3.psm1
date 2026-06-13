@@ -28,6 +28,18 @@ enum ProjectPermissionLevel {
     ReleaseAdministrators
 }
 
+enum OrgPermissionLevel {
+    ProjectCollectionAdministrators
+    ProjectCollectionBuildAdministrators
+    ProjectCollectionBuildServiceAccounts
+    ProjectCollectionProxyServiceAccounts
+    ProjectCollectionServiceAccounts
+    ProjectCollectionTestServiceAccounts
+    ProjectCollectionValidUsers
+    ProjectScopedUsers
+    SecurityServiceGroup
+}
+
 <#
 .SYNOPSIS
 Manages Azure DevOps projects for an organization.
@@ -989,10 +1001,16 @@ class ProjectUserPermissionResource {
 
     # Check if the user is already a member of the target group
     hidden [bool] IsMember([string]$UserDescriptor, [string]$GroupDescriptor) {
+        [string]$OrgName  = $this.GetOrganizationValue()
+        [string]$Token    = $this.GetTokenValue()
+        $Base64Auth       = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$Token"))
         try {
             $encodedUser  = [uri]::EscapeDataString($UserDescriptor)
             $encodedGroup = [uri]::EscapeDataString($GroupDescriptor)
-            $this.CallGraphApi("GET", "/memberships/$encodedUser/$($encodedGroup)?api-version=$($this.apiVersion)", $null)
+            $null = Invoke-RestMethod -Uri "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedUser/$($encodedGroup)?api-version=$($this.apiVersion)" `
+                -Method GET `
+                -Headers @{ Authorization = "Basic $Base64Auth" } `
+                -ErrorAction Stop
             return $true
         }
         catch {
@@ -1304,10 +1322,16 @@ class ProjectGroupPermissionResource {
 
     # Check if the source group is already a member of the target project group
     hidden [bool] IsMember([string]$SourceGroupDescriptor, [string]$ProjectGroupDescriptor) {
+        [string]$OrgName  = $this.GetOrganizationValue()
+        [string]$Token    = $this.GetTokenValue()
+        $Base64Auth       = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$Token"))
         try {
             $encodedSourceGroup  = [uri]::EscapeDataString($SourceGroupDescriptor)
             $encodedProjectGroup = [uri]::EscapeDataString($ProjectGroupDescriptor)
-            $this.CallGraphApi("GET", "/memberships/$encodedSourceGroup/$($encodedProjectGroup)?api-version=$($this.apiVersion)", $null)
+            $null = Invoke-RestMethod -Uri "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedSourceGroup/$($encodedProjectGroup)?api-version=$($this.apiVersion)" `
+                -Method GET `
+                -Headers @{ Authorization = "Basic $Base64Auth" } `
+                -ErrorAction Stop
             return $true
         }
         catch {
@@ -1403,3 +1427,499 @@ class ProjectGroupPermissionResource {
     }
 }
 
+<#
+.SYNOPSIS
+Manages a user's membership in an organization-level (Project Collection) Azure DevOps security group.
+.DESCRIPTION
+Adds or removes a user (by UPN) to/from an organization-level security group such as
+Project Collection Administrators, Project Collection Valid Users, Project-Scoped Users, etc.
+Uses the Azure DevOps Graph REST API.
+.PARAMETER UserPrincipalName
+User principal name (email) to add or remove from the organization group.
+.PARAMETER PermissionLevel
+The organization-level group to manage: ProjectCollectionAdministrators,
+ProjectCollectionBuildAdministrators, ProjectCollectionBuildServiceAccounts,
+ProjectCollectionProxyServiceAccounts, ProjectCollectionServiceAccounts,
+ProjectCollectionTestServiceAccounts, ProjectCollectionValidUsers,
+ProjectScopedUsers, or SecurityServiceGroup.
+.PARAMETER Organization
+Azure DevOps organization name.
+.PARAMETER Ensure
+Desired state: Present (add membership) or Absent (remove membership).
+.PARAMETER pat
+Personal access token used for authentication.
+.PARAMETER apiVersion
+Azure DevOps REST API version for the Graph endpoints.
+#>
+[DscResource()]
+class OrganizationUserPermissionResource {
+    [DscProperty(Key)]
+    [string]$UserPrincipalName
+
+    [DscProperty(Key)]
+    [string]$Organization
+
+    [DscProperty(Mandatory)]
+    [OrgPermissionLevel]$PermissionLevel
+
+    [DscProperty()]
+    [Ensure]$Ensure = [Ensure]::Present
+
+    [DscProperty(Mandatory)]
+    [Alias('Token','PersonalAccessToken')]
+    [string]$pat
+
+    [DscProperty()]
+    [string]$apiVersion = "7.1-preview.1"
+
+    hidden [string] GetTokenValue() {
+        if ($this.pat -is [hashtable]) {
+            $keyNames = @("value", "secureString", "Token", "PersonalAccessToken", "pat", "_value")
+            foreach ($key in $keyNames) {
+                if ($this.pat.ContainsKey($key)) {
+                    return $this.pat[$key].ToString()
+                }
+            }
+            $firstKey = $this.pat.Keys | Select-Object -First 1
+            if ($firstKey) {
+                return $this.pat[$firstKey].ToString()
+            }
+        }
+        return $this.pat.ToString()
+    }
+
+    hidden [string] GetOrganizationValue() {
+        if ($this.Organization -is [hashtable]) {
+            $firstValue = $this.Organization.Values | Select-Object -First 1
+            if ($firstValue) { return $firstValue.ToString() }
+        }
+        return $this.Organization
+    }
+
+    hidden [object] CallApi([string]$Method, [string]$Uri, [string]$Body) {
+        [string]$StringToken = $this.GetTokenValue()
+
+        if ([string]::IsNullOrWhiteSpace($StringToken)) { throw "Token is null or empty" }
+
+        $Base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$StringToken"))
+        $Headers = @{
+            Authorization  = "Basic $Base64AuthInfo"
+            "Content-Type" = "application/json"
+        }
+
+        $Params = @{
+            Uri         = $Uri
+            Method      = $Method
+            Headers     = $Headers
+            ErrorAction = "Stop"
+        }
+        if ($Body) { $Params.Body = $Body }
+
+        try {
+            return Invoke-RestMethod @Params
+        }
+        catch {
+            Write-Error "OrganizationUserPermissionResource.CallApi error: $_"
+            throw
+        }
+    }
+
+    hidden [string] GetGroupDisplayName() {
+        $result = switch ($this.PermissionLevel) {
+            'ProjectCollectionAdministrators'      { 'Project Collection Administrators' }
+            'ProjectCollectionBuildAdministrators' { 'Project Collection Build Administrators' }
+            'ProjectCollectionBuildServiceAccounts'{ 'Project Collection Build Service Accounts' }
+            'ProjectCollectionProxyServiceAccounts'{ 'Project Collection Proxy Service Accounts' }
+            'ProjectCollectionServiceAccounts'     { 'Project Collection Service Accounts' }
+            'ProjectCollectionTestServiceAccounts' { 'Project Collection Test Service Accounts' }
+            'ProjectCollectionValidUsers'          { 'Project Collection Valid Users' }
+            'ProjectScopedUsers'                   { 'Project-Scoped Users' }
+            'SecurityServiceGroup'                 { 'Security Service Group' }
+            default { throw "Unknown PermissionLevel: $($this.PermissionLevel)" }
+        }
+        return $result
+    }
+
+    hidden [string] GetOrgGroupDescriptor() {
+        [string]$OrgName  = $this.GetOrganizationValue()
+        $targetName       = $this.GetGroupDisplayName()
+        $groups = $this.CallApi("GET", "https://vssps.dev.azure.com/$OrgName/_apis/graph/groups?api-version=$($this.apiVersion)", $null)
+
+        if ($null -eq $groups -or $null -eq $groups.value) {
+            throw "No groups found for organization '$OrgName'"
+        }
+        $escapedOrg = [regex]::Escape($OrgName)
+        $group = $groups.value | Where-Object { $_.displayName -eq $targetName -and $_.principalName -match "^\[$escapedOrg\]" }
+        if ($null -eq $group) {
+            throw "Organization group '$targetName' not found in '$OrgName'"
+        }
+        return $group.descriptor
+    }
+
+    hidden [string] GetUserDescriptor() {
+        [string]$OrgName = $this.GetOrganizationValue()
+        $users = $this.CallApi("GET", "https://vssps.dev.azure.com/$OrgName/_apis/graph/users?api-version=$($this.apiVersion)", $null)
+
+        if ($null -eq $users -or $null -eq $users.value) {
+            throw "No users returned from Graph API"
+        }
+        $user = $users.value | Where-Object { $_.principalName -eq $this.UserPrincipalName }
+        if ($null -eq $user) {
+            throw "User '$($this.UserPrincipalName)' not found in the organization"
+        }
+        return $user.descriptor
+    }
+
+    hidden [bool] IsMember([string]$UserDescriptor, [string]$GroupDescriptor) {
+        [string]$OrgName     = $this.GetOrganizationValue()
+        [string]$Token       = $this.GetTokenValue()
+        $Base64Auth          = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$Token"))
+        $encodedUser         = [uri]::EscapeDataString($UserDescriptor)
+        $encodedGroup        = [uri]::EscapeDataString($GroupDescriptor)
+        try {
+            $null = Invoke-RestMethod -Uri "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedUser/$($encodedGroup)?api-version=$($this.apiVersion)" `
+                -Method GET `
+                -Headers @{ Authorization = "Basic $Base64Auth" } `
+                -ErrorAction Stop
+            return $true
+        }
+        catch {
+            return $false
+        }
+    }
+
+    [bool] Test() {
+        try {
+            Write-Verbose "Test() - Checking org permission: $($this.UserPrincipalName) -> $($this.PermissionLevel) in $($this.Organization)"
+
+            $groupDescriptor = $this.GetOrgGroupDescriptor()
+            $userDescriptor  = $this.GetUserDescriptor()
+            $isMember        = $this.IsMember($userDescriptor, $groupDescriptor)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                return $isMember
+            }
+            else {
+                return -not $isMember
+            }
+        }
+        catch {
+            Write-Error "Test() - Error: $_"
+            return $this.Ensure -eq [Ensure]::Absent
+        }
+    }
+
+    [void] Set() {
+        try {
+            Write-Verbose "Set() - Setting org permission: $($this.UserPrincipalName) -> $($this.PermissionLevel), Ensure=$($this.Ensure)"
+
+            [string]$OrgName  = $this.GetOrganizationValue()
+            $groupDescriptor  = $this.GetOrgGroupDescriptor()
+            $userDescriptor   = $this.GetUserDescriptor()
+
+            $encodedUser  = [uri]::EscapeDataString($userDescriptor)
+            $encodedGroup = [uri]::EscapeDataString($groupDescriptor)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                $this.CallApi("PUT", "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedUser/$($encodedGroup)?api-version=$($this.apiVersion)", "")
+                Write-Verbose "Set() - Added '$($this.UserPrincipalName)' to '$($this.GetGroupDisplayName())' in organization '$OrgName'"
+            }
+            else {
+                $this.CallApi("DELETE", "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedUser/$($encodedGroup)?api-version=$($this.apiVersion)", $null)
+                Write-Verbose "Set() - Removed '$($this.UserPrincipalName)' from '$($this.GetGroupDisplayName())' in organization '$OrgName'"
+            }
+        }
+        catch {
+            Write-Error "Set() - Error: $_"
+            throw
+        }
+    }
+
+    [OrganizationUserPermissionResource] Get() {
+        try {
+            Write-Verbose "Get() - Retrieving org permission: $($this.UserPrincipalName) -> $($this.PermissionLevel)"
+
+            $groupDescriptor = $this.GetOrgGroupDescriptor()
+            $userDescriptor  = $this.GetUserDescriptor()
+            $isMember        = $this.IsMember($userDescriptor, $groupDescriptor)
+
+            $result = [OrganizationUserPermissionResource]::new()
+            $result.UserPrincipalName = $this.UserPrincipalName
+            $result.Organization      = $this.GetOrganizationValue()
+            $result.PermissionLevel   = $this.PermissionLevel
+            $result.Ensure            = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
+            $result.pat               = $this.pat
+            $result.apiVersion        = $this.apiVersion
+            return $result
+        }
+        catch {
+            Write-Error "Get() - Error: $_"
+
+            $result = [OrganizationUserPermissionResource]::new()
+            $result.UserPrincipalName = $this.UserPrincipalName
+            $result.Organization      = $this.GetOrganizationValue()
+            $result.PermissionLevel   = $this.PermissionLevel
+            $result.Ensure            = [Ensure]::Absent
+            $result.pat               = $this.pat
+            $result.apiVersion        = $this.apiVersion
+            return $result
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Manages an Entra security group's membership in an organization-level (Project Collection) Azure DevOps security group.
+.DESCRIPTION
+Adds or removes an Entra (Azure AD) security group to/from an organization-level security group
+such as Project Collection Administrators, Project Collection Valid Users, Project-Scoped Users, etc.
+If the Entra group is not yet linked to the Azure DevOps organization, it is added automatically during Set.
+Uses the Azure DevOps Graph REST API.
+.PARAMETER GroupOriginId
+The Origin ID (Object ID) of the Entra security group.
+.PARAMETER GroupDisplayName
+Optional display name of the Entra security group (for reference).
+.PARAMETER PermissionLevel
+The organization-level group to manage: ProjectCollectionAdministrators,
+ProjectCollectionBuildAdministrators, ProjectCollectionBuildServiceAccounts,
+ProjectCollectionProxyServiceAccounts, ProjectCollectionServiceAccounts,
+ProjectCollectionTestServiceAccounts, ProjectCollectionValidUsers,
+ProjectScopedUsers, or SecurityServiceGroup.
+.PARAMETER Organization
+Azure DevOps organization name.
+.PARAMETER Ensure
+Desired state: Present (add membership) or Absent (remove membership).
+.PARAMETER pat
+Personal access token used for authentication.
+.PARAMETER apiVersion
+Azure DevOps REST API version for the Graph endpoints.
+#>
+[DscResource()]
+class OrganizationGroupPermissionResource {
+    [DscProperty(Key)]
+    [string]$GroupOriginId
+
+    [DscProperty(Key)]
+    [string]$Organization
+
+    [DscProperty()]
+    [string]$GroupDisplayName
+
+    [DscProperty(Mandatory)]
+    [OrgPermissionLevel]$PermissionLevel
+
+    [DscProperty()]
+    [Ensure]$Ensure = [Ensure]::Present
+
+    [DscProperty(Mandatory)]
+    [Alias('Token','PersonalAccessToken')]
+    [string]$pat
+
+    [DscProperty()]
+    [string]$apiVersion = "7.1-preview.1"
+
+    hidden [string] GetTokenValue() {
+        if ($this.pat -is [hashtable]) {
+            $keyNames = @("value", "secureString", "Token", "PersonalAccessToken", "pat", "_value")
+            foreach ($key in $keyNames) {
+                if ($this.pat.ContainsKey($key)) {
+                    return $this.pat[$key].ToString()
+                }
+            }
+            $firstKey = $this.pat.Keys | Select-Object -First 1
+            if ($firstKey) {
+                return $this.pat[$firstKey].ToString()
+            }
+        }
+        return $this.pat.ToString()
+    }
+
+    hidden [string] GetOrganizationValue() {
+        if ($this.Organization -is [hashtable]) {
+            $firstValue = $this.Organization.Values | Select-Object -First 1
+            if ($firstValue) { return $firstValue.ToString() }
+        }
+        return $this.Organization
+    }
+
+    hidden [object] CallApi([string]$Method, [string]$Uri, [string]$Body) {
+        [string]$StringToken = $this.GetTokenValue()
+
+        if ([string]::IsNullOrWhiteSpace($StringToken)) { throw "Token is null or empty" }
+
+        $Base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$StringToken"))
+        $Headers = @{
+            Authorization  = "Basic $Base64AuthInfo"
+            "Content-Type" = "application/json"
+        }
+
+        $Params = @{
+            Uri         = $Uri
+            Method      = $Method
+            Headers     = $Headers
+            ErrorAction = "Stop"
+        }
+        if ($Body) { $Params.Body = $Body }
+
+        try {
+            return Invoke-RestMethod @Params
+        }
+        catch {
+            Write-Error "OrganizationGroupPermissionResource.CallApi error: $_"
+            throw
+        }
+    }
+
+    hidden [string] GetGroupDisplayName() {
+        $result = switch ($this.PermissionLevel) {
+            'ProjectCollectionAdministrators'      { 'Project Collection Administrators' }
+            'ProjectCollectionBuildAdministrators' { 'Project Collection Build Administrators' }
+            'ProjectCollectionBuildServiceAccounts'{ 'Project Collection Build Service Accounts' }
+            'ProjectCollectionProxyServiceAccounts'{ 'Project Collection Proxy Service Accounts' }
+            'ProjectCollectionServiceAccounts'     { 'Project Collection Service Accounts' }
+            'ProjectCollectionTestServiceAccounts' { 'Project Collection Test Service Accounts' }
+            'ProjectCollectionValidUsers'          { 'Project Collection Valid Users' }
+            'ProjectScopedUsers'                   { 'Project-Scoped Users' }
+            'SecurityServiceGroup'                 { 'Security Service Group' }
+            default { throw "Unknown PermissionLevel: $($this.PermissionLevel)" }
+        }
+        return $result
+    }
+
+    hidden [string] GetOrgGroupDescriptor() {
+        [string]$OrgName  = $this.GetOrganizationValue()
+        $targetName       = $this.GetGroupDisplayName()
+        $groups = $this.CallApi("GET", "https://vssps.dev.azure.com/$OrgName/_apis/graph/groups?api-version=$($this.apiVersion)", $null)
+
+        if ($null -eq $groups -or $null -eq $groups.value) {
+            throw "No groups found for organization '$OrgName'"
+        }
+        $escapedOrg = [regex]::Escape($OrgName)
+        $group = $groups.value | Where-Object { $_.displayName -eq $targetName -and $_.principalName -match "^\[$escapedOrg\]" }
+        if ($null -eq $group) {
+            throw "Organization group '$targetName' not found in '$OrgName'"
+        }
+        return $group.descriptor
+    }
+
+    hidden [string] GetSourceGroupDescriptor() {
+        [string]$OrgName = $this.GetOrganizationValue()
+        $groups = $this.CallApi("GET", "https://vssps.dev.azure.com/$OrgName/_apis/graph/groups?api-version=$($this.apiVersion)", $null)
+
+        if ($null -ne $groups -and $null -ne $groups.value) {
+            $sourceGroup = $groups.value | Where-Object { $_.originId -eq $this.GroupOriginId }
+            if ($null -ne $sourceGroup) {
+                return $sourceGroup.descriptor
+            }
+        }
+
+        # Group not yet linked — add it from Entra
+        Write-Verbose "GetSourceGroupDescriptor() - Group '$($this.GroupOriginId)' not found; linking to organization."
+        $payload  = @{ originId = $this.GroupOriginId } | ConvertTo-Json -Depth 10
+        $newGroup = $this.CallApi("POST", "https://vssps.dev.azure.com/$OrgName/_apis/graph/groups?api-version=$($this.apiVersion)", $payload)
+
+        if ($null -eq $newGroup -or [string]::IsNullOrWhiteSpace($newGroup.descriptor)) {
+            throw "Failed to link Entra group '$($this.GroupOriginId)' to the organization."
+        }
+        Write-Verbose "GetSourceGroupDescriptor() - Linked group. Descriptor: $($newGroup.descriptor)"
+        return $newGroup.descriptor
+    }
+
+    hidden [bool] IsMember([string]$SourceGroupDescriptor, [string]$OrgGroupDescriptor) {
+        [string]$OrgName      = $this.GetOrganizationValue()
+        [string]$Token        = $this.GetTokenValue()
+        $Base64Auth           = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$Token"))
+        $encodedSourceGroup   = [uri]::EscapeDataString($SourceGroupDescriptor)
+        $encodedOrgGroup      = [uri]::EscapeDataString($OrgGroupDescriptor)
+        try {
+            $null = Invoke-RestMethod -Uri "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedSourceGroup/$($encodedOrgGroup)?api-version=$($this.apiVersion)" `
+                -Method GET `
+                -Headers @{ Authorization = "Basic $Base64Auth" } `
+                -ErrorAction Stop
+            return $true
+        }
+        catch {
+            return $false
+        }
+    }
+
+    [bool] Test() {
+        try {
+            Write-Verbose "Test() - Checking org group permission: $($this.GroupOriginId) -> $($this.PermissionLevel) in $($this.Organization)"
+
+            $orgGroupDescriptor    = $this.GetOrgGroupDescriptor()
+            $sourceGroupDescriptor = $this.GetSourceGroupDescriptor()
+            $isMember              = $this.IsMember($sourceGroupDescriptor, $orgGroupDescriptor)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                return $isMember
+            }
+            else {
+                return -not $isMember
+            }
+        }
+        catch {
+            Write-Error "Test() - Error: $_"
+            return $this.Ensure -eq [Ensure]::Absent
+        }
+    }
+
+    [void] Set() {
+        try {
+            Write-Verbose "Set() - Setting org group permission: $($this.GroupOriginId) -> $($this.PermissionLevel), Ensure=$($this.Ensure)"
+
+            [string]$OrgName       = $this.GetOrganizationValue()
+            $orgGroupDescriptor    = $this.GetOrgGroupDescriptor()
+            $sourceGroupDescriptor = $this.GetSourceGroupDescriptor()
+
+            $encodedSourceGroup = [uri]::EscapeDataString($sourceGroupDescriptor)
+            $encodedOrgGroup    = [uri]::EscapeDataString($orgGroupDescriptor)
+
+            if ($this.Ensure -eq [Ensure]::Present) {
+                $this.CallApi("PUT", "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedSourceGroup/$($encodedOrgGroup)?api-version=$($this.apiVersion)", "")
+                Write-Verbose "Set() - Added group '$($this.GroupOriginId)' to '$($this.GetGroupDisplayName())' in organization '$OrgName'"
+            }
+            else {
+                $this.CallApi("DELETE", "https://vssps.dev.azure.com/$OrgName/_apis/graph/memberships/$encodedSourceGroup/$($encodedOrgGroup)?api-version=$($this.apiVersion)", $null)
+                Write-Verbose "Set() - Removed group '$($this.GroupOriginId)' from '$($this.GetGroupDisplayName())' in organization '$OrgName'"
+            }
+        }
+        catch {
+            Write-Error "Set() - Error: $_"
+            throw
+        }
+    }
+
+    [OrganizationGroupPermissionResource] Get() {
+        try {
+            Write-Verbose "Get() - Retrieving org group permission: $($this.GroupOriginId) -> $($this.PermissionLevel)"
+
+            $orgGroupDescriptor    = $this.GetOrgGroupDescriptor()
+            $sourceGroupDescriptor = $this.GetSourceGroupDescriptor()
+            $isMember              = $this.IsMember($sourceGroupDescriptor, $orgGroupDescriptor)
+
+            $result = [OrganizationGroupPermissionResource]::new()
+            $result.GroupOriginId    = $this.GroupOriginId
+            $result.GroupDisplayName = $this.GroupDisplayName
+            $result.Organization     = $this.GetOrganizationValue()
+            $result.PermissionLevel  = $this.PermissionLevel
+            $result.Ensure           = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
+            $result.pat              = $this.pat
+            $result.apiVersion       = $this.apiVersion
+            return $result
+        }
+        catch {
+            Write-Error "Get() - Error: $_"
+
+            $result = [OrganizationGroupPermissionResource]::new()
+            $result.GroupOriginId    = $this.GroupOriginId
+            $result.GroupDisplayName = $this.GroupDisplayName
+            $result.Organization     = $this.GetOrganizationValue()
+            $result.PermissionLevel  = $this.PermissionLevel
+            $result.Ensure           = [Ensure]::Absent
+            $result.pat              = $this.pat
+            $result.apiVersion       = $this.apiVersion
+            return $result
+        }
+    }
+}

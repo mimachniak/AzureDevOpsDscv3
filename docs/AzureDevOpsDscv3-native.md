@@ -20,6 +20,8 @@ This guide covers how to copy the native DSC v3 resource files to a working dire
 | `AzureDevOps/Project` | `dsc-resources/project/` | Create / update / delete an ADO project |
 | `AzureDevOps/OrganizationUser` | `dsc-resources/organization-user/` | Manage user entitlement (access level) in an organization |
 | `AzureDevOps/OrganizationGroup` | `dsc-resources/organization-group/` | Manage Entra group entitlement (license rule) in an organization |
+| `AzureDevOps/OrganizationUserPermission` | `dsc-resources/organization-user-permission/` | Add / remove a user from an organization-level (Project Collection) security group |
+| `AzureDevOps/OrganizationGroupPermission` | `dsc-resources/organization-group-permission/` | Add / remove an Entra group from an organization-level (Project Collection) security group |
 | `AzureDevOps/ProjectUserPermission` | `dsc-resources/project-user-permission/` | Add / remove a user from a project-level security group |
 | `AzureDevOps/ProjectGroupPermission` | `dsc-resources/project-group-permission/` | Add / remove an Entra group from a project-level security group |
 
@@ -39,6 +41,8 @@ $resources = @(
     "project",
     "organization-user",
     "organization-group",
+    "organization-user-permission",
+    "organization-group-permission",
     "project-user-permission",
     "project-group-permission"
 )
@@ -65,6 +69,8 @@ $env:DSC_RESOURCE_PATH = @(
     "$base\project",
     "$base\organization-user",
     "$base\organization-group",
+    "$base\organization-user-permission",
+    "$base\organization-group-permission",
     "$base\project-user-permission",
     "$base\project-group-permission"
 ) -join ";"
@@ -93,11 +99,13 @@ dsc resource list | Select-String "AzureDevOps"
 Expected output:
 
 ```
-AzureDevOps/OrganizationGroup         0.1.0
-AzureDevOps/OrganizationUser          0.1.0
-AzureDevOps/Project                   0.1.0
-AzureDevOps/ProjectGroupPermission    0.1.0
-AzureDevOps/ProjectUserPermission     0.1.0
+AzureDevOps/OrganizationGroup             0.1.0
+AzureDevOps/OrganizationGroupPermission   0.1.0
+AzureDevOps/OrganizationUser              0.1.0
+AzureDevOps/OrganizationUserPermission    0.1.0
+AzureDevOps/Project                       0.1.0
+AzureDevOps/ProjectGroupPermission        0.1.0
+AzureDevOps/ProjectUserPermission         0.1.0
 ```
 
 If a resource is missing, verify:
