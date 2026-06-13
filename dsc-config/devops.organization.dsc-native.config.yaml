@@ -1,0 +1,27 @@
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+parameters:
+  Organization:
+    type: string
+    defaultValue: YourOrganization
+  Token:
+    type: string
+    defaultValue: "**********"
+
+resources:
+  - name: OrgznationUserPermission
+    type: AzureDevOpsDscv3/OrganizationUserPermissionResource
+    properties:
+      UserPrincipalName: dev@contoso.com
+      Organization: "[parameters('Organization')]"
+      PermissionLevel: ProjectCollectionAdministrators
+      Ensure: Present
+      pat: "[parameters('Token')]"
+  - name: OrganizationGroupPermission
+    type: AzureDevOpsDscv3/OrganizationGroupPermissionResource
+    properties:
+      GroupOriginId: "00000000-0000-0000-0000-000000000000"   # group descriptor
+      GroupDisplayName: GBA-AAD-ADO-Organization-permissions-DSC
+      Organization: "[parameters('Organization')]"
+      PermissionLevel: ProjectCollectionAdministrators
+      Ensure: Present
+      pat: "[parameters('Token')]"
