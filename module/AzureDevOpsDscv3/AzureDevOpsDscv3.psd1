@@ -5,7 +5,7 @@
 RootModule = 'AzureDevOpsDscv3.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.2'
+ModuleVersion = '1.0.3'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop', 'Core')
@@ -101,7 +101,7 @@ DscResourcesToExport = @('ProjectResource', 'OrganizationUserResource', 'Organiz
             v. 1.0.1 - 2026-03-13
                 - Add class: ProjectUserPermissionResource
                 - Add class: ProjectGroupPermissionResource
-            v. 1.0.2 - 2026-06-12
+            v. 1.0.2 - 2026-06-012
                 - Add class: OrganizationUserPermissionResource
                 - Add class: OrganizationGroupPermissionResource
             '
