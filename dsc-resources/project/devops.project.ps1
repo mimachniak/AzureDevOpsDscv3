@@ -156,7 +156,6 @@ switch ($Operation) {
                     sourceControlType = if ($project.capabilities.versioncontrol.sourceControlType) { $project.capabilities.versioncontrol.sourceControlType } else { $scType }
                     organization      = $org
                     ensure            = 'Present'
-                    pat               = $desired.pat
                     apiVersion        = $apiVersion
                     _inDesiredState   = $null
                 }
@@ -168,7 +167,6 @@ switch ($Operation) {
                     sourceControlType = $scType
                     organization      = $org
                     ensure            = 'Absent'
-                    pat               = $desired.pat
                     apiVersion        = $apiVersion
                     _inDesiredState   = $null
                 }
@@ -195,7 +193,6 @@ switch ($Operation) {
                 sourceControlType = if ($exists -and $project.capabilities.versioncontrol.sourceControlType) { $project.capabilities.versioncontrol.sourceControlType } else { $scType }
                 organization      = $org
                 ensure            = if ($exists) { 'Present' } else { 'Absent' }
-                pat               = $desired.pat
                 apiVersion        = $apiVersion
                 _inDesiredState   = $inDesiredState
             }
@@ -258,7 +255,6 @@ switch ($Operation) {
                 sourceControlType = if ($null -ne $project) { $project.capabilities.versioncontrol.sourceControlType } else { $scType }
                 organization      = $org
                 ensure            = if ($null -ne $project) { 'Present' } else { 'Absent' }
-                pat               = $desired.pat
                 apiVersion        = $apiVersion
                 _inDesiredState   = $null
             }

@@ -69,8 +69,7 @@
             "required": [
                 "userPrincipalName",
                 "permissionLevel",
-                "organization",
-                "pat"
+                "organization"
             ],
             "properties": {
                 "userPrincipalName": {
@@ -112,7 +111,8 @@
                 "pat": {
                     "title": "Personal Access Token",
                     "description": "A Personal Access Token with 'Graph > Read & manage' permissions.",
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                 },
                 "apiVersion": {
                     "title": "API Version",

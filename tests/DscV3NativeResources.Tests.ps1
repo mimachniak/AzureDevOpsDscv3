@@ -35,7 +35,7 @@ BeforeAll {
                 tar -xzf $archivePath -C $installDir
             }
 
-            $dscBin = Join-Path $installDir (if ($IsWindows) { 'dsc.exe' } else { 'dsc' })
+            $dscBin = Join-Path $installDir $(if ($IsWindows) { 'dsc.exe' } else { 'dsc' })
             if (-not $IsWindows) { chmod +x $dscBin }
 
             $sep      = if ($IsWindows) { ';' } else { ':' }
@@ -123,5 +123,27 @@ Describe 'Resource manifest files are valid JSON' {
     It '<_.Name> declares a version field' -ForEach $manifests {
         $manifest = Get-Content $_.FullName -Raw | ConvertFrom-Json
         $manifest.version | Should -Match '^\d+\.\d+\.\d+$'
+    }
+
+    It '<_.Name> marks pat as writeOnly' -ForEach $manifests {
+        $manifest = Get-Content $_.FullName -Raw | ConvertFrom-Json
+        $manifest.schema.embedded.properties.pat.writeOnly | Should -BeTrue
+    }
+
+    # dsc validates resource output against the schema, so a required pat would fail every call
+    It '<_.Name> does not list pat as required' -ForEach $manifests {
+        $manifest = Get-Content $_.FullName -Raw | ConvertFrom-Json
+        $manifest.schema.embedded.required | Should -Not -Contain 'pat'
+    }
+}
+
+# ── Secret handling ──────────────────────────────────────────────────────────
+Describe 'Resource scripts do not return the PAT' {
+
+    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+    $scripts  = Get-ChildItem -Path (Join-Path $repoRoot 'dsc-resources') -Filter '*.ps1' -Recurse
+
+    It '<_.Name> does not copy pat into its output' -ForEach $scripts {
+        Get-Content $_.FullName -Raw | Should -Not -Match '(?m)^\s*pat\s*=\s*\$desired\.pat\s*$'
     }
 }

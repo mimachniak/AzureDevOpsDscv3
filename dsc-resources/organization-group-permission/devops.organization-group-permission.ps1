@@ -234,7 +234,6 @@ switch ($Operation) {
                 permissionLevel  = $permLevel
                 organization     = $org
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $null
             } | ConvertTo-Json -Compress
@@ -264,7 +263,6 @@ switch ($Operation) {
                 permissionLevel  = $permLevel
                 organization     = $org
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $inDesiredState
             } | ConvertTo-Json -Compress
@@ -320,7 +318,6 @@ switch ($Operation) {
                 permissionLevel  = $permLevel
                 organization     = $org
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $null
             } | ConvertTo-Json -Compress

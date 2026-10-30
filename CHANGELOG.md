@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Security
+
+- Resources no longer return the PAT in Get/Test/Set output; `pat` is marked `writeOnly` in the DSC v3 manifests.
+
 ### Added
 
 

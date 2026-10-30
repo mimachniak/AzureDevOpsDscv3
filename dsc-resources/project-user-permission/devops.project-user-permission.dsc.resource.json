@@ -70,8 +70,7 @@
                 "projectName",
                 "userPrincipalName",
                 "permissionLevel",
-                "organization",
-                "pat"
+                "organization"
             ],
             "properties": {
                 "projectName": {
@@ -115,7 +114,8 @@
                 "pat": {
                     "title": "Personal Access Token",
                     "description": "A Personal Access Token with 'Graph > Read & manage' and 'Project and Team > Read' permissions.",
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                 },
                 "apiVersion": {
                     "title": "API Version",

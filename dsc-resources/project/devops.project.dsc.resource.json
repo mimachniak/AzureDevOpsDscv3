@@ -66,8 +66,7 @@
             "type": "object",
             "required": [
                 "projectName",
-                "organization",
-                "pat"
+                "organization"
             ],
             "properties": {
                 "projectName": {
@@ -111,7 +110,8 @@
                 "pat": {
                     "title": "Personal Access Token",
                     "description": "A Personal Access Token (PAT) with sufficient permissions to manage projects in the organization.",
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                 },
                 "templateTypeId": {
                     "title": "Template Type ID",

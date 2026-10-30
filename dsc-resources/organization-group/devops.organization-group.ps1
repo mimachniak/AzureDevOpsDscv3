@@ -165,7 +165,6 @@ switch ($Operation) {
                     organization     = $org
                     accessLevel      = ConvertFrom-LicenseType -LicenseType $group.licenseRule.accountLicenseType
                     ensure           = 'Present'
-                    pat              = $desired.pat
                     apiVersion       = $apiVersion
                     _inDesiredState  = $null
                 }
@@ -177,7 +176,6 @@ switch ($Operation) {
                     organization     = $org
                     accessLevel      = $accessLevel
                     ensure           = 'Absent'
-                    pat              = $desired.pat
                     apiVersion       = $apiVersion
                     _inDesiredState  = $null
                 }
@@ -212,7 +210,6 @@ switch ($Operation) {
                 organization     = $org
                 accessLevel      = $rAccessLevel
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $inDesiredState
             }
@@ -303,7 +300,6 @@ switch ($Operation) {
                 organization     = $org
                 accessLevel      = $rAccessLevel
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $null
             }

@@ -176,6 +176,7 @@ Describe 'ProjectResource' {
 
             $result = $resource.Get()
             $result.Ensure | Should -Be 'Present'
+            $result.pat | Should -BeNullOrEmpty
         }
 
         It 'Get() should return Absent when project missing' {
@@ -189,6 +190,7 @@ Describe 'ProjectResource' {
 
             $result = $resource.Get()
             $result.Ensure | Should -Be 'Absent'
+            $result.pat | Should -BeNullOrEmpty
         }
     }
 }

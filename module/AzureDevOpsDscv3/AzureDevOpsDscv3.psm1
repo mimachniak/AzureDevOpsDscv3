@@ -462,7 +462,6 @@ class OrganizationUserResource {
                 $result.UserPrincipalName = $this.UserPrincipalName
                 $result.Organization = $this.GetOrganizationValue()
                 $result.Ensure = [Ensure]::Absent
-                $result.pat = $this.pat
                 $result.apiVersion = $this.apiVersion
                 return $result
             }
@@ -484,7 +483,6 @@ class OrganizationUserResource {
                 $result.Organization = $this.GetOrganizationValue()
                 $result.AccessLevel = $userAccessLevel
                 $result.Ensure = [Ensure]::Present
-                $result.pat = $this.pat
                 $result.apiVersion = $this.apiVersion
                 return $result
             }
@@ -495,7 +493,6 @@ class OrganizationUserResource {
                 $result.Organization = $this.GetOrganizationValue()
                 $result.AccessLevel = $this.AccessLevel
                 $result.Ensure = [Ensure]::Absent
-                $result.pat = $this.pat
                 $result.apiVersion = $this.apiVersion
                 return $result
             }
@@ -507,7 +504,6 @@ class OrganizationUserResource {
             $result.UserPrincipalName = $this.UserPrincipalName
             $result.Organization = $this.GetOrganizationValue()
             $result.Ensure = [Ensure]::Absent
-            $result.pat = $this.pat
             $result.apiVersion = $this.apiVersion
             return $result
         }
@@ -749,7 +745,6 @@ class OrganizationGroupResource {
                 $result.GroupOriginId = $this.GroupOriginId
                 $result.Organization = $this.GetOrganizationValue()
                 $result.Ensure = [Ensure]::Absent
-                $result.pat = $this.pat
                 $result.apiVersion = $this.apiVersion
                 return $result
             }
@@ -772,7 +767,6 @@ class OrganizationGroupResource {
                 $result.Organization = $this.GetOrganizationValue()
                 $result.AccessLevel = $groupAccessLevel
                 $result.Ensure = [Ensure]::Present
-                $result.pat = $this.pat
                 $result.apiVersion = $this.apiVersion
                 return $result
             }
@@ -784,7 +778,6 @@ class OrganizationGroupResource {
                 $result.Organization = $this.GetOrganizationValue()
                 $result.AccessLevel = $this.AccessLevel
                 $result.Ensure = [Ensure]::Absent
-                $result.pat = $this.pat
                 $result.apiVersion = $this.apiVersion
                 return $result
             }
@@ -797,7 +790,6 @@ class OrganizationGroupResource {
             $result.GroupDisplayName = $this.GroupDisplayName
             $result.Organization = $this.GetOrganizationValue()
             $result.Ensure = [Ensure]::Absent
-            $result.pat = $this.pat
             $result.apiVersion = $this.apiVersion
             return $result
         }
@@ -1084,7 +1076,6 @@ class ProjectUserPermissionResource {
             $result.PermissionLevel   = $this.PermissionLevel
             $result.Organization      = $this.GetOrganizationValue()
             $result.Ensure            = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
-            $result.pat               = $this.pat
             $result.apiVersion        = $this.apiVersion
             return $result
         }
@@ -1097,7 +1088,6 @@ class ProjectUserPermissionResource {
             $result.PermissionLevel   = $this.PermissionLevel
             $result.Organization      = $this.GetOrganizationValue()
             $result.Ensure            = [Ensure]::Absent
-            $result.pat               = $this.pat
             $result.apiVersion        = $this.apiVersion
             return $result
         }
@@ -1406,7 +1396,6 @@ class ProjectGroupPermissionResource {
             $result.PermissionLevel  = $this.PermissionLevel
             $result.Organization     = $this.GetOrganizationValue()
             $result.Ensure           = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
-            $result.pat              = $this.pat
             $result.apiVersion       = $this.apiVersion
             return $result
         }
@@ -1420,7 +1409,6 @@ class ProjectGroupPermissionResource {
             $result.PermissionLevel  = $this.PermissionLevel
             $result.Organization     = $this.GetOrganizationValue()
             $result.Ensure           = [Ensure]::Absent
-            $result.pat              = $this.pat
             $result.apiVersion       = $this.apiVersion
             return $result
         }
@@ -1648,7 +1636,6 @@ class OrganizationUserPermissionResource {
             $result.Organization      = $this.GetOrganizationValue()
             $result.PermissionLevel   = $this.PermissionLevel
             $result.Ensure            = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
-            $result.pat               = $this.pat
             $result.apiVersion        = $this.apiVersion
             return $result
         }
@@ -1660,7 +1647,6 @@ class OrganizationUserPermissionResource {
             $result.Organization      = $this.GetOrganizationValue()
             $result.PermissionLevel   = $this.PermissionLevel
             $result.Ensure            = [Ensure]::Absent
-            $result.pat               = $this.pat
             $result.apiVersion        = $this.apiVersion
             return $result
         }
@@ -1904,7 +1890,6 @@ class OrganizationGroupPermissionResource {
             $result.Organization     = $this.GetOrganizationValue()
             $result.PermissionLevel  = $this.PermissionLevel
             $result.Ensure           = if ($isMember) { [Ensure]::Present } else { [Ensure]::Absent }
-            $result.pat              = $this.pat
             $result.apiVersion       = $this.apiVersion
             return $result
         }
@@ -1917,7 +1902,6 @@ class OrganizationGroupPermissionResource {
             $result.Organization     = $this.GetOrganizationValue()
             $result.PermissionLevel  = $this.PermissionLevel
             $result.Ensure           = [Ensure]::Absent
-            $result.pat              = $this.pat
             $result.apiVersion       = $this.apiVersion
             return $result
         }

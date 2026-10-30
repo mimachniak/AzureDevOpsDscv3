@@ -349,6 +349,7 @@ Describe 'ProjectUserPermissionResource' {
 
             $result = $resource.Get()
             $result.Ensure | Should -Be 'Present'
+            $result.pat | Should -BeNullOrEmpty
             $result.ProjectName | Should -Be 'TestProject'
             $result.UserPrincipalName | Should -Be 'user@domain.com'
         }
@@ -384,6 +385,7 @@ Describe 'ProjectUserPermissionResource' {
 
             $result = $resource.Get()
             $result.Ensure | Should -Be 'Absent'
+            $result.pat | Should -BeNullOrEmpty
         }
     }
 }

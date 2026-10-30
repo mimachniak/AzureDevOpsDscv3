@@ -67,8 +67,7 @@
             "type": "object",
             "required": [
                 "userPrincipalName",
-                "organization",
-                "pat"
+                "organization"
             ],
             "properties": {
                 "userPrincipalName": {
@@ -105,7 +104,8 @@
                 "pat": {
                     "title": "Personal Access Token",
                     "description": "A Personal Access Token with 'Member Entitlement Management > Read & write' permission.",
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                 },
                 "apiVersion": {
                     "title": "API Version",

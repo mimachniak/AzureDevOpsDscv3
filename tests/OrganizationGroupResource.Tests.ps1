@@ -236,6 +236,7 @@ Describe 'OrganizationGroupResource' {
 
             $result = $resource.Get()
             $result.Ensure | Should -Be 'Present'
+            $result.pat | Should -BeNullOrEmpty
             $result.AccessLevel | Should -Be 'Basic'
         }
 
@@ -250,6 +251,7 @@ Describe 'OrganizationGroupResource' {
 
             $result = $resource.Get()
             $result.Ensure | Should -Be 'Absent'
+            $result.pat | Should -BeNullOrEmpty
         }
     }
 }

@@ -249,7 +249,6 @@ switch ($Operation) {
                     permissionLevel  = $permLevel
                     organization     = $org
                     ensure           = 'Absent'
-                    pat              = $desired.pat
                     apiVersion       = $apiVersion
                     _inDesiredState  = $null
                 } | ConvertTo-Json -Compress
@@ -272,7 +271,6 @@ switch ($Operation) {
                 permissionLevel  = $permLevel
                 organization     = $org
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $null
             }
@@ -295,7 +293,6 @@ switch ($Operation) {
                     permissionLevel  = $permLevel
                     organization     = $org
                     ensure           = 'Absent'
-                    pat              = $desired.pat
                     apiVersion       = $apiVersion
                     _inDesiredState  = ($ensure -eq 'Absent')
                 } | ConvertTo-Json -Compress
@@ -320,7 +317,6 @@ switch ($Operation) {
                 permissionLevel  = $permLevel
                 organization     = $org
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $inDesiredState
             }
@@ -380,7 +376,6 @@ switch ($Operation) {
                 permissionLevel  = $permLevel
                 organization     = $org
                 ensure           = $rEnsure
-                pat              = $desired.pat
                 apiVersion       = $apiVersion
                 _inDesiredState  = $null
             }
